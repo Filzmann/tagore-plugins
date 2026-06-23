@@ -22,3 +22,13 @@ _original-custom-plugins-backup/
 .env
 .env.*
 wp-config.php
+
+# Composer / tooling
+vendor/
+
+# Test / coverage
+coverage/
+.phpunit.result.cache
+
+# Local reports
+reports/
