@@ -1,0 +1,14 @@
+{
+  "require-dev": {
+    "wp-coding-standards/wpcs": "^3.0"
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    }
+  },
+  "name": "tagore-gymnasium/custom-plugins",
+  "description": "Development tooling for custom WordPress plugins of Tagore Gymnasium.",
+  "type": "project",
+  "license": "proprietary"
+}
