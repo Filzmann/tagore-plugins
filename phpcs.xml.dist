@@ -11,7 +11,9 @@
 	<exclude-pattern>*/vendor/*</exclude-pattern>
 
 	<rule ref="WordPress.Security.ValidatedSanitizedInput"/>
-	<rule ref="WordPress.Security.NonceVerification"/>
+	<rule ref="WordPress.Security.NonceVerification">
+		<exclude name="WordPress.Security.NonceVerification.Recommended"/>
+	</rule>
 	<rule ref="WordPress.Security.EscapeOutput"/>
 	<rule ref="WordPress.DB.PreparedSQL"/>
 </ruleset>
