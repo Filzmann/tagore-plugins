@@ -34,11 +34,11 @@
   }
 
   function applyFilters(scope) {
-    var classSelect = scope.querySelector('[data-tg-ags-class-select]');
-    var weekdaySelect = scope.querySelector('[data-tg-ags-weekday-select]');
+    var classSelect = scope.querySelector('[data-flz-ags-class-select]');
+    var weekdaySelect = scope.querySelector('[data-flz-ags-weekday-select]');
     var selectedClass = classSelect ? classSelect.value : '';
     var weekday = weekdaySelect ? weekdaySelect.value : '';
-    var items = scope.querySelectorAll('[data-tg-ags-filter-item]');
+    var items = scope.querySelectorAll('[data-flz-ags-filter-item]');
 
     items.forEach(function (item) {
       var show = isAllowed(item, selectedClass, weekday);
@@ -54,8 +54,8 @@
   }
 
   function initScope(scope) {
-    var classSelects = scope.querySelectorAll('[data-tg-ags-class-select]');
-    var weekdaySelects = scope.querySelectorAll('[data-tg-ags-weekday-select]');
+    var classSelects = scope.querySelectorAll('[data-flz-ags-class-select]');
+    var weekdaySelects = scope.querySelectorAll('[data-flz-ags-weekday-select]');
 
     classSelects.forEach(function (select) {
       select.addEventListener('change', function () { applyFilters(scope); });
@@ -68,6 +68,6 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.tg-ags').forEach(initScope);
+    document.querySelectorAll('.flz-ags').forEach(initScope);
   });
 }());

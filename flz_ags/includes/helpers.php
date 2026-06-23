@@ -2,18 +2,18 @@
 
 defined('ABSPATH') || exit;
 
-function tg_ags_table(string $name): string
+function flz_ags_table(string $name): string
 {
     global $wpdb;
-    return $wpdb->prefix . 'tg_ag_' . $name;
+    return $wpdb->prefix . 'flz_ag_' . $name;
 }
 
-function tg_ags_manage_capability(): string
+function flz_ags_manage_capability(): string
 {
-    return (string) apply_filters('tg_ags_manage_capability', 'manage_options');
+    return (string) apply_filters('flz_ags_manage_capability', 'manage_options');
 }
 
-function tg_ags_default_school_year(): string
+function flz_ags_default_school_year(): string
 {
     $year = (int) current_time('Y');
     $month = (int) current_time('n');
@@ -25,23 +25,23 @@ function tg_ags_default_school_year(): string
     return ($year - 1) . '/' . $year;
 }
 
-function tg_ags_current_school_year(): string
+function flz_ags_current_school_year(): string
 {
-    $value = (string) get_option('tg_ags_current_school_year', '');
-    return $value !== '' ? $value : tg_ags_default_school_year();
+    $value = (string) get_option('flz_ags_current_school_year', '');
+    return $value !== '' ? $value : flz_ags_default_school_year();
 }
 
-function tg_ags_sanitize_school_year($value): string
+function flz_ags_sanitize_school_year($value): string
 {
     $value = sanitize_text_field((string) $value);
     if (preg_match('/^\d{4}\s*\/\s*\d{4}$/', $value)) {
         return preg_replace('/\s+/', '', $value);
     }
 
-    return tg_ags_default_school_year();
+    return flz_ags_default_school_year();
 }
 
-function tg_ags_default_classes(): array
+function flz_ags_default_classes(): array
 {
     return array(
         '7.1', '7.2', '7.3', '7.4', '7.5',
@@ -54,17 +54,17 @@ function tg_ags_default_classes(): array
     );
 }
 
-function tg_ags_get_classes(): array
+function flz_ags_get_classes(): array
 {
-    $classes = get_option('tg_ags_classes', array());
+    $classes = get_option('flz_ags_classes', array());
     if (!is_array($classes) || empty($classes)) {
-        return tg_ags_default_classes();
+        return flz_ags_default_classes();
     }
 
     return array_values(array_filter(array_map('sanitize_text_field', $classes)));
 }
 
-function tg_ags_sanitize_classes_from_text(string $text): array
+function flz_ags_sanitize_classes_from_text(string $text): array
 {
     $lines = preg_split('/[\r\n,;]+/', $text);
     $classes = array();
@@ -79,7 +79,7 @@ function tg_ags_sanitize_classes_from_text(string $text): array
     return array_values(array_unique($classes));
 }
 
-function tg_ags_extract_grade_key(string $class_name): string
+function flz_ags_extract_grade_key(string $class_name): string
 {
     $class_name = trim($class_name);
 
@@ -94,12 +94,12 @@ function tg_ags_extract_grade_key(string $class_name): string
     return '';
 }
 
-function tg_ags_is_valid_class(string $class_name): bool
+function flz_ags_is_valid_class(string $class_name): bool
 {
-    return in_array($class_name, tg_ags_get_classes(), true);
+    return in_array($class_name, flz_ags_get_classes(), true);
 }
 
-function tg_ags_sanitize_allowed_grades($value): string
+function flz_ags_sanitize_allowed_grades($value): string
 {
     if (is_array($value)) {
         $items = $value;
@@ -121,9 +121,9 @@ function tg_ags_sanitize_allowed_grades($value): string
     return implode(',', array_values(array_unique($allowed)));
 }
 
-function tg_ags_grade_is_allowed(string $class_name, string $allowed_grades, bool $only_grade_7): bool
+function flz_ags_grade_is_allowed(string $class_name, string $allowed_grades, bool $only_grade_7): bool
 {
-    $grade_key = tg_ags_extract_grade_key($class_name);
+    $grade_key = flz_ags_extract_grade_key($class_name);
 
     if ($only_grade_7 && $grade_key !== '7') {
         return false;
@@ -138,7 +138,7 @@ function tg_ags_grade_is_allowed(string $class_name, string $allowed_grades, boo
     return in_array(strtoupper($grade_key), $allowed, true);
 }
 
-function tg_ags_weekdays(): array
+function flz_ags_weekdays(): array
 {
     return array(
         1 => 'Montag',
@@ -151,14 +151,14 @@ function tg_ags_weekdays(): array
     );
 }
 
-function tg_ags_weekday_label($weekday): string
+function flz_ags_weekday_label($weekday): string
 {
-    $weekdays = tg_ags_weekdays();
+    $weekdays = flz_ags_weekdays();
     $weekday = (int) $weekday;
     return $weekdays[$weekday] ?? '';
 }
 
-function tg_ags_status_labels(): array
+function flz_ags_status_labels(): array
 {
     return array(
         'active' => 'aktiv',
@@ -168,13 +168,13 @@ function tg_ags_status_labels(): array
     );
 }
 
-function tg_ags_status_label(string $status): string
+function flz_ags_status_label(string $status): string
 {
-    $labels = tg_ags_status_labels();
+    $labels = flz_ags_status_labels();
     return $labels[$status] ?? $status;
 }
 
-function tg_ags_format_time(?string $time): string
+function flz_ags_format_time(?string $time): string
 {
     $time = (string) $time;
     if ($time === '') {
@@ -184,30 +184,30 @@ function tg_ags_format_time(?string $time): string
     return substr($time, 0, 5);
 }
 
-function tg_ags_admin_url(array $args = array()): string
+function flz_ags_admin_url(array $args = array()): string
 {
     return add_query_arg($args, admin_url('admin.php'));
 }
 
-function tg_ags_notice(string $message, string $type = 'success'): string
+function flz_ags_notice(string $message, string $type = 'success'): string
 {
     $class = $type === 'error' ? 'notice notice-error' : 'notice notice-success';
     return '<div class="' . esc_attr($class) . '"><p>' . esc_html($message) . '</p></div>';
 }
 
-function tg_ags_course_image_url($image_url): string
+function flz_ags_course_image_url($image_url): string
 {
     $image_url = trim((string) $image_url);
     if ($image_url !== '') {
         return esc_url($image_url);
     }
 
-    return esc_url(TG_AGS_URL . 'assets/img/demo/default.svg');
+    return esc_url(FLZ_AGS_URL . 'assets/img/demo/default.svg');
 }
 
-function tg_ags_demo_courses(): array
+function flz_ags_demo_courses(): array
 {
-    $base = TG_AGS_URL . 'assets/img/demo/';
+    $base = FLZ_AGS_URL . 'assets/img/demo/';
 
     return array(
         array(

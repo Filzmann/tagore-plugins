@@ -2,29 +2,29 @@
 
 defined('ABSPATH') || exit;
 
-class TG_AGS_Database
+class FLZ_AGS_Database
 {
     public static function activate(): void
     {
         self::create_tables();
-        add_option('tg_ags_current_school_year', tg_ags_default_school_year());
-        add_option('tg_ags_classes', tg_ags_default_classes());
-        update_option('tg_ags_db_version', TG_AGS_VERSION, false);
+        add_option('flz_ags_current_school_year', flz_ags_default_school_year());
+        add_option('flz_ags_classes', flz_ags_default_classes());
+        update_option('flz_ags_db_version', FLZ_AGS_VERSION, false);
     }
 
     public static function maybe_upgrade(): void
     {
-        $installed = (string) get_option('tg_ags_db_version', '');
-        if ($installed !== TG_AGS_VERSION) {
+        $installed = (string) get_option('flz_ags_db_version', '');
+        if ($installed !== FLZ_AGS_VERSION) {
             self::create_tables();
-            if (get_option('tg_ags_current_school_year', '') === '') {
-                add_option('tg_ags_current_school_year', tg_ags_default_school_year());
+            if (get_option('flz_ags_current_school_year', '') === '') {
+                add_option('flz_ags_current_school_year', flz_ags_default_school_year());
             }
-            $classes = get_option('tg_ags_classes', array());
+            $classes = get_option('flz_ags_classes', array());
             if (!is_array($classes) || empty($classes)) {
-                add_option('tg_ags_classes', tg_ags_default_classes());
+                add_option('flz_ags_classes', flz_ags_default_classes());
             }
-            update_option('tg_ags_db_version', TG_AGS_VERSION, false);
+            update_option('flz_ags_db_version', FLZ_AGS_VERSION, false);
         }
     }
 
@@ -35,9 +35,9 @@ class TG_AGS_Database
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
         $charset_collate = $wpdb->get_charset_collate();
-        $courses = tg_ags_table('courses');
-        $slots = tg_ags_table('slots');
-        $registrations = tg_ags_table('registrations');
+        $courses = flz_ags_table('courses');
+        $slots = flz_ags_table('slots');
+        $registrations = flz_ags_table('registrations');
 
         $sql_courses = "CREATE TABLE {$courses} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,

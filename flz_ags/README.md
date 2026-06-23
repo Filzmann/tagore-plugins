@@ -28,33 +28,33 @@ Initiale WordPress-Plugin-Version für AG-Verwaltung und AG-Anmeldung.
 AG-Liste:
 
 ```text
-[tagore_ag_liste]
+[flz_ag_liste]
 ```
 
 AG-Anmeldung:
 
 ```text
-[tagore_ag_anmeldung]
+[flz_ag_anmeldung]
 ```
 
 Optionales Schuljahr:
 
 ```text
-[tagore_ag_liste school_year="2026/2027"]
-[tagore_ag_anmeldung school_year="2026/2027"]
+[flz_ag_liste school_year="2026/2027"]
+[flz_ag_anmeldung school_year="2026/2027"]
 ```
 
 Optionaler Link zur Anmeldeseite in der Liste:
 
 ```text
-[tagore_ag_liste registration_url="/unser-angebot/ag-anmeldung/"]
+[flz_ag_liste registration_url="/unser-angebot/ag-anmeldung/"]
 ```
 
 ## Demo-Setup
 
 Nach Aktivierung:
 
-`Tagore AGs` → `Demo-Setup` → Schuljahr wählen → Demo-AGs anlegen.
+`FLZ AGs` → `Demo-Setup` → Schuljahr wählen → Demo-AGs anlegen.
 
 Das Demo-Setup legt u. a. folgende AGs an:
 
@@ -72,14 +72,14 @@ Vorhandene AGs mit gleichem Slug und Schuljahr werden nicht dupliziert. Einige Z
 ## Installation lokal in DDEV
 
 ```bash
-cp -r tagore-ags ~/projects/tagore/wp-content/plugins/
+cp -r flz-ags ~/projects/tagore/wp-content/plugins/
 cd ~/projects/tagore
-ddev wp plugin activate tagore-ags
+ddev wp plugin activate flz-ags
 ```
 
 Danach im Backend:
 
-`Tagore AGs` → `Einstellungen` prüfen, aktuelles Schuljahr setzen, Klassenliste prüfen.
+`FLZ AGs` → `Einstellungen` prüfen, aktuelles Schuljahr setzen, Klassenliste prüfen.
 
 ## Datenschutz/Prüfpunkte vor produktivem Einsatz
 

@@ -9,7 +9,7 @@ Bearbeitet werden dürfen nur diese Plugin-Verzeichnisse:
 - flz_elternsprechtag
 - flz_probeunterricht
 - flz_wpdb_objects
-- tagore-ags
+- flz_ags
 - flz_shortcode_redirect
 
 Nicht bearbeitet werden dürfen:
@@ -28,7 +28,7 @@ Die bestehende Namenskonvention `flz_` ist für eigene Entwicklungen beizubehalt
 
 Für neue eigene Plugins, PHP-Funktionen, PHP-Klassenpräfixe, Shortcodes, Optionsnamen, Capabilities, AJAX-/REST-Actions, Cron-Hooks, CSS-/JS-Handles und Datenbanktabellen ist grundsätzlich ein `flz_`-Präfix bzw. ein eindeutig davon abgeleiteter Präfix zu verwenden.
 
-Bestehende abweichende Namen wie `tagore-ags` oder bereits angelegte Tabellenpräfixe wie `tg_ag_*` gelten als Bestand. Sie dürfen nicht beiläufig umbenannt werden. Eine Umbenennung ist nur mit ausdrücklicher Entscheidung, Migrationsplan, Datenbankmigration, Rückwärtskompatibilitätsprüfung und Staging-Test zulässig.
+Das AG-Plugin heißt `flz_ags`. Für AG-bezogene neue Namen gelten `flz_ags`, `flz_ag_*` und `flz-ags` als verbindliche Konvention. Alte Namen wie `tagore-ags`, `tagore_ags`, `tg_ag_*` oder `tg-ag` sind nicht weiterzuverwenden. Falls solche Namen lokal oder auf Staging noch vorkommen, gelten sie als Altbestand der Umbenennung und sollen gezielt entfernt oder migriert werden.
 
 ## Entwicklungsprinzip
 

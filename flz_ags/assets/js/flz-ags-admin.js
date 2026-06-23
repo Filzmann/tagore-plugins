@@ -1,12 +1,12 @@
 (function ($) {
   'use strict';
 
-  $(document).on('click', '[data-tg-ags-media-button]', function (event) {
+  $(document).on('click', '[data-flz-ags-media-button]', function (event) {
     event.preventDefault();
 
-    var $field = $(this).closest('.tg-ags-image-field');
-    var $input = $field.find('[data-tg-ags-image-input]');
-    var $preview = $field.find('[data-tg-ags-image-preview]');
+    var $field = $(this).closest('.flz-ags-image-field');
+    var $input = $field.find('[data-flz-ags-image-input]');
+    var $preview = $field.find('[data-flz-ags-image-preview]');
 
     var frame = wp.media({
       title: 'Vorschaubild auswählen',
@@ -25,15 +25,15 @@
     frame.open();
   });
 
-  $(document).on('click', '[data-tg-ags-clear-image]', function (event) {
+  $(document).on('click', '[data-flz-ags-clear-image]', function (event) {
     event.preventDefault();
-    var $field = $(this).closest('.tg-ags-image-field');
-    $field.find('[data-tg-ags-image-input]').val('').trigger('change');
+    var $field = $(this).closest('.flz-ags-image-field');
+    $field.find('[data-flz-ags-image-input]').val('').trigger('change');
   });
 
-  $(document).on('change', '[data-tg-ags-image-input]', function () {
+  $(document).on('change', '[data-flz-ags-image-input]', function () {
     var value = $(this).val();
-    var $preview = $(this).closest('.tg-ags-image-field').find('[data-tg-ags-image-preview]');
+    var $preview = $(this).closest('.flz-ags-image-field').find('[data-flz-ags-image-preview]');
     if (value) {
       $preview.attr('src', value);
     }
