@@ -1,0 +1,206 @@
+.tg-ags {
+  margin: 1.5rem 0;
+}
+
+.tg-ags-filters,
+.tg-ags-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.tg-ags label {
+  display: block;
+  font-weight: 600;
+}
+
+.tg-ags input[type="text"],
+.tg-ags input[type="email"],
+.tg-ags select {
+  width: 100%;
+  max-width: 100%;
+  margin-top: 0.25rem;
+}
+
+.tg-ags-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+.tg-ags-card,
+.tg-ags-slot-choice {
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  border-radius: 0.75rem;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.tg-ags-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.tg-ags-card-image-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #f4f4f4;
+}
+
+.tg-ags-card-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tg-ags-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  flex: 1 1 auto;
+}
+
+.tg-ags-card h3 {
+  margin: 0;
+  line-height: 1.2;
+}
+
+.tg-ags-card-text {
+  margin: 0;
+}
+
+.tg-ags-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
+.tg-ags-meta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 0.75rem;
+  margin: 0;
+}
+
+.tg-ags-meta dt {
+  font-weight: 700;
+}
+
+.tg-ags-meta dd {
+  margin: 0;
+}
+
+.tg-ags-badge,
+.tg-ags-message {
+  display: inline-block;
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.25rem;
+  font-weight: 700;
+}
+
+.tg-ags-badge,
+.tg-ags-message-error {
+  border: 1px solid currentColor;
+}
+
+.tg-ags-message-success {
+  border: 1px solid currentColor;
+}
+
+.tg-ags-slot-fieldset {
+  margin: 1.25rem 0;
+  padding: 1rem;
+  border: 1px solid currentColor;
+}
+
+.tg-ags-slot-choice {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.tg-ags-slot-choice input {
+  margin-top: 0.25rem;
+}
+
+.tg-ags-slot-image {
+  width: 72px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 0.35rem;
+  flex: 0 0 auto;
+}
+
+.tg-ags-consent {
+  margin: 1rem 0;
+  font-weight: 400;
+}
+
+.tg-ags-admin-form .regular-text,
+.tg-ags-admin-filter input,
+.tg-ags-admin-filter select {
+  max-width: 320px;
+}
+
+.tg-ags-admin-checkbox {
+  display: inline-block;
+  margin: 0.15rem 0;
+}
+
+.tg-ags-slots-table input[type="text"],
+.tg-ags-slots-table input[type="time"],
+.tg-ags-slots-table input[type="number"],
+.tg-ags-slots-table select {
+  width: 100%;
+}
+
+.tg-ags-admin-thumb {
+  display: block;
+  width: 96px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 0.35rem;
+  background: #f4f4f4;
+}
+
+.tg-ags-image-field {
+  display: grid;
+  grid-template-columns: 120px minmax(240px, 420px) auto auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.tg-ags-image-preview {
+  width: 120px;
+  height: 68px;
+  object-fit: cover;
+  border-radius: 0.35rem;
+  background: #f4f4f4;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+}
+
+@media (max-width: 782px) {
+  .tg-ags-image-field {
+    grid-template-columns: 1fr;
+  }
+
+  .tg-ags-image-preview {
+    width: 100%;
+    max-width: 220px;
+    height: auto;
+    aspect-ratio: 16 / 9;
+  }
+}

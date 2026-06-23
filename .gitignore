@@ -1,0 +1,24 @@
+# IDE / Editor
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs / temp
+*.log
+*.tmp
+*.bak
+*.swp
+*~
+
+# Local backups
+*.bak-before-*
+_original-custom-plugins-backup/
+
+# Secrets / environment
+.env
+.env.*
+wp-config.php
