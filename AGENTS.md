@@ -10,6 +10,7 @@ Bearbeitet werden dürfen nur diese Plugin-Verzeichnisse:
 - flz_probeunterricht
 - flz_wpdb_objects
 - tagore-ags
+- flz_shortcode_redirect
 
 Nicht bearbeitet werden dürfen:
 
