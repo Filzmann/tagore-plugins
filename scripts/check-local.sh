@@ -16,7 +16,7 @@ find \
   flz_probeunterricht \
   flz_wpdb_objects \
   flz_shortcode_redirect \
-  tagore-ags \
+  flz_ags \
   -type f -name '*.php' \
   -print0 \
   | xargs -0 -n1 php -l
@@ -29,7 +29,7 @@ ddev describe
 echo
 echo "=== WordPress own plugin status ==="
 ddev wp plugin list --fields=name,status,version --format=table \
-  | grep -E 'name|flz_|tagore-ags'
+  | grep -E 'name|flz_|flz_ags'
 
 echo
 echo "=== HTTP status ==="
