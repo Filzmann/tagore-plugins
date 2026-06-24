@@ -19,15 +19,7 @@ class FlzPerson extends FlzWpdbObject {
 	}
 
 	public static function get_by_email(string $email): object|null {
-
-		//$start is unix timestamp for $this->start
-		$where=" email LIKE '{$email}' ";
-		$result = static::get_by_where( $where );
-		if ( $result ) {
-			return static::createObjectFromResult( $result );
-		} else {
-			return null;
-		}
+		return static::get_by_fields( [ 'email' => sanitize_email( $email ) ] );
 	}
 	public function get_gender_as_anrede():string
 	{
