@@ -63,54 +63,6 @@ class FlzWpdbObject {
 	}
 
 	/**
-	 * Legacy raw-WHERE API.
-	 *
-	 * New code should use get_by_fields(). The optional values argument allows
-	 * callers with more complex conditions to use placeholders safely without
-	 * breaking the existing method signature.
-	 */
-	public static function get_by_where( $where, array $values = [] ): null|object {
-
-		global $wpdb;
-		$table  = static::validated_identifier( static::table_name() );
-		$query  = "SELECT * FROM $table ";
-		$query  .= "WHERE " . (string) $where;
-		if ( ! empty( $values ) ) {
-			$query = $wpdb->prepare( $query, $values );
-		}
-		$result = $wpdb->get_row( $query );
-		if ( ! $result ) {
-			return null;
-		}
-
-		return static::createObjectFromResult( $result );
-	}
-
-	public static function get_all( $where = '', $order_by = 'id', array $values = [] ): array {
-		global $wpdb;
-		$table = static::validated_identifier( static::table_name() );
-		$order_by = static::validated_order_by( $order_by );
-		$query = "SELECT * FROM $table";
-		if ( $where != '' ) {
-			$query .= " WHERE $where";
-		}
-		$query .= " ORDER BY $order_by";
-		if ( ! empty( $values ) ) {
-			$query = $wpdb->prepare( $query, $values );
-		}
-		$results = $wpdb->get_results( $query );
-		$objects = [];
-		foreach ( $results as $result ) {
-			$object = static::createObjectFromResult( $result );
-
-
-			$objects[] = $object;
-		}
-
-		return $objects;
-	}
-
-	/**
 	 * Safe list query for equality, NULL and IN conditions.
 	 */
 	public static function get_all_by(
@@ -193,20 +145,6 @@ class FlzWpdbObject {
 		}
 
 		return $identifier;
-	}
-
-	private static function validated_order_by( string $order_by ): string {
-		$parts = array_map( 'trim', explode( ',', $order_by ) );
-		$validated = [];
-
-		foreach ( $parts as $part ) {
-			if ( ! preg_match( '/^([A-Za-z_][A-Za-z0-9_]*)(?:\s+(ASC|DESC))?$/i', $part, $matches ) ) {
-				return 'id';
-			}
-			$validated[] = $matches[1] . ( isset( $matches[2] ) ? ' ' . strtoupper( $matches[2] ) : '' );
-		}
-
-		return implode( ', ', $validated );
 	}
 
 	private static function build_where_clause( array $fields ): array {
@@ -315,18 +253,6 @@ class FlzWpdbObject {
 		$this->afterDelete();
 
 		return $result;
-	}
-
-	public static function count($where=null, array $values = []): int {
-		global $wpdb;
-		$table = static::validated_identifier( static::table_name() );
-		$query  = "SELECT COUNT(*) FROM $table";
-		$query  .= $where ? " WHERE " . (string) $where : '';
-		if ( ! empty( $values ) ) {
-			$query = $wpdb->prepare( $query, $values );
-		}
-
-		return (int) $wpdb->get_var( $query );
 	}
 
 	public static function count_by( array $fields = [] ): int {
