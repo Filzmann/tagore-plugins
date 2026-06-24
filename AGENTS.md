@@ -67,3 +67,42 @@ Vor jeder größeren Änderung:
 3. Nach der Änderung Tests/Checks ausführen.
 4. Geänderte Dateien nennen.
 5. Zweck, Risiko und Teststand zusammenfassen.
+
+## Lokale Test- und DDEV-Regeln
+
+Das Plugin-Repository `~/projects/tagore-plugins` ist kein DDEV-Projekt. Dort liegt keine `.ddev/config.yaml`.
+
+Die lokale WordPress-/DDEV-Instanz liegt unter:
+
+`~/projects/tagore-local`
+
+DDEV-Befehle wie `ddev start`, `ddev wp`, `ddev exec` oder `ddev composer` müssen deshalb immer aus `~/projects/tagore-local` heraus ausgeführt werden, sofern nicht ausdrücklich ein anderer DDEV-Projektpfad genannt wird.
+
+Codeänderungen erfolgen im Plugin-Repository:
+
+`~/projects/tagore-plugins`
+
+Die Standardprüfungen für dieses Repo werden aus dem Plugin-Repository gestartet:
+
+```bash
+cd ~/projects/tagore-plugins
+./scripts/phpcs-flz-ags.sh
+./scripts/check-local.sh
+```
+
+Wenn DDEV nicht läuft, zuerst starten mit:
+
+```bash
+cd ~/projects/tagore-local
+ddev start
+```
+
+Danach zurück ins Plugin-Repository und die Checks erneut ausführen:
+
+```bash
+cd ~/projects/tagore-plugins
+./scripts/phpcs-flz-ags.sh
+./scripts/check-local.sh
+```
+
+Für neue Tests gilt: Testdateien und Testskripte im Plugin-Repository anlegen, aber WordPress-, WP-CLI-, Composer- oder PHPUnit-Befehle, die eine WordPress-/DDEV-Umgebung brauchen, über die DDEV-Instanz `~/projects/tagore-local` ausführen.
