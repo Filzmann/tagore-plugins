@@ -106,3 +106,20 @@ cd ~/projects/tagore-plugins
 ```
 
 Für neue Tests gilt: Testdateien und Testskripte im Plugin-Repository anlegen, aber WordPress-, WP-CLI-, Composer- oder PHPUnit-Befehle, die eine WordPress-/DDEV-Umgebung brauchen, über die DDEV-Instanz `~/projects/tagore-local` ausführen.
+
+## Codex-Commit-Regel
+
+Codex darf Git-Commits nur nach ausdrücklicher Freigabe durch den Nutzer erstellen.
+
+Vor einem Commit muss Codex anzeigen:
+
+- `git status --short`
+- `git diff --stat`
+- die konkret zu committenden Dateien
+- die vorgeschlagene Commit-Message
+
+Codex darf nur ausdrücklich benannte Dateien stagen. `git add .` ist nicht erlaubt, außer der Nutzer verlangt es ausdrücklich.
+
+Wenn weitere uncommitted Changes existieren, müssen Commits fachlich getrennt bleiben.
+
+Codex darf nicht pushen und nicht auf Staging oder Produktion deployen, außer der Nutzer verlangt dies ausdrücklich.
