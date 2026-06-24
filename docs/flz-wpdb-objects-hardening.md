@@ -25,6 +25,9 @@ vorbereitete Werte aufgebaut.
 - `createCsv( ... )` wird durch `flz_wpdb_objects_create_csv( ... )` ersetzt.
 - Die unpräfixierten und repo-intern unbenutzten Helfer `debug()` und
   `write_log()` wurden ohne Ersatz entfernt.
+- `save()` und `delete()` liefern bei Erfolg weiterhin die Anzahl betroffener
+  Zeilen, geben bei Fehlern aber nicht mehr `false` zurück. Fehler werden als
+  `FlzWpdbObjectsException` weitergegeben.
 
 `$fields` ist ein assoziatives Array aus Spaltennamen und Werten. Mehrere Felder
 werden mit `AND` verknüpft. `null` erzeugt `IS NULL`; Arraywerte erzeugen eine
@@ -55,6 +58,46 @@ Update nach dem obigen Schema angepasst werden.
 Eine Datenbankmigration ist nicht erforderlich: Tabellenstruktur und gespeicherte
 Daten bleiben unverändert.
 
+## Fehlervertrag
+
+Operative Fehler des Shared-Plugins werden einheitlich als
+`flz_wpdb_objects\FlzWpdbObjectsException` weitergegeben. Die Meldung enthält
+den fehlgeschlagenen Vorgang sowie Tabelle, Modell, Property oder Dateipfad. Eine
+ursprüngliche Exception bleibt über `getPrevious()` verkettet; dadurch geht die
+technische Ursache beim Ergänzen von Kontext nicht verloren.
+
+Folgende Fehler werden ausdrücklich erkannt:
+
+- `$wpdb` liefert `false`, ein unerwartetes Ergebnis oder setzt `last_error`.
+- Query-Vorbereitung, `$wpdb`-Aufruf oder `dbDelta()` werfen eine Exception.
+- Ein Datensatz kann nicht hydriert oder eine referenzierte Beziehung nicht
+  geladen werden.
+- Speicherdaten fehlen, eine Insert-ID fehlt oder ein zu löschender Datensatz
+  existiert nicht.
+- Ein Lifecycle-Hook schlägt fehl. Die Meldung benennt den Hook und ob die
+  Datenbankänderung davor bereits ausgeführt wurde.
+- Uploadverzeichnis, Öffnen, Schreiben oder Schließen einer CSV-Datei schlagen
+  fehl. Modellfehler beim Aufbau einer CSV-Zeile werden mit ihrem Index
+  weitergereicht.
+- Ein Zeitraum ist unvollständig, negativ oder endet vor seinem Beginn.
+
+Ungültige Methodenargumente bleiben `InvalidArgumentException`, damit
+Programmier- und Validierungsfehler von operativen Datenbank-/Dateisystemfehlern
+unterschieden werden können.
+
+Aufrufer, die bisher `save() === false` oder `delete() === false` geprüft haben,
+müssen stattdessen `FlzWpdbObjectsException` behandeln. Im aktuellen Repository
+gab es keine solchen Prüfungen. An einer UI-Grenze sollte die Exception
+protokolliert und eine separate, escapte Meldung ohne interne Details angezeigt
+werden.
+
+Der eigenständige CLI-Smoke-Test prüft Erfolgs- und Fehlerpfade ohne Änderungen
+an der WordPress-Datenbank:
+
+```bash
+php flz_wpdb_objects/tests/error-handling-smoke.php
+```
+
 ## Verbleibende Risiken
 
 - `delete_table()` und `truncate_table()` sind technische Modellmethoden ohne
@@ -72,3 +115,11 @@ Daten bleiben unverändert.
   sowohl für einzelne Zeilen als auch für ganze Tabellen verwendet. Eine
   Trennung wäre wartbarer, wäre aber eine weitere API-Änderung und ist deshalb
   nicht Bestandteil dieser Härtung.
+- Die vorhandenen Admin- und Frontend-Controller fangen
+  `FlzWpdbObjectsException` noch nicht zentral ab. WordPress protokolliert die
+  verkettete Ursache über seinen Fatal-Error-Handler; benutzerfreundliche
+  Admin-Hinweise sollten bei der weiteren Nonce-/Formularhärtung ergänzt werden.
+- Mehrschrittige Abläufe wie Defaultdaten, Terminserien oder das Zurücksetzen
+  mehrerer Schulen laufen noch nicht in einer Datenbanktransaktion. Die neue
+  Exception benennt den fehlgeschlagenen Teilschritt, bereits erfolgreiche
+  Schreibvorgänge werden aber nicht automatisch zurückgerollt.
