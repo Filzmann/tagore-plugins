@@ -3,42 +3,59 @@
 namespace flz_wpdb_objects;
 
 use ReflectionException;
+use ReflectionNamedType;
 use ReflectionProperty;
+use ReflectionUnionType;
 
 
 class FlzWpdbObject {
 
 	public int|null $id;
 
-	public function __construct( $id = null ) {
+	public function __construct( int|null $id = null ) {
 		$this->id = $id;
 	}
 
+	/**
+	 * Löscht die Tabelle des konkreten Modells.
+	 *
+	 * Berechtigungen und Nonces müssen vom aufrufenden Admin- oder
+	 * Aktivierungscode geprüft werden; diese Modellklasse kennt keinen Request.
+	 */
 	public static function delete_table(): void {
 		global $wpdb;
 		static::beforeDelete();
 		$table_name = static::validated_identifier( static::table_name() );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabellenname wurde mit validated_identifier() geprüft.
 		$wpdb->query( "DROP TABLE IF EXISTS $table_name" );
 		static::afterDelete();
 	}
 
-	public static function truncate_table( $disable_fk_check = false ): void {
+	/**
+	 * Leert die Tabelle und stellt eine vorübergehend deaktivierte
+	 * Fremdschlüsselprüfung zuverlässig wieder her.
+	 */
+	public static function truncate_table( bool $disable_fk_check = false ): void {
 		global $wpdb;
 		static::beforeTruncate();
 		if ( $disable_fk_check ) {
 			$wpdb->query( "SET FOREIGN_KEY_CHECKS = 0; " );
 		}
-		$table_name = static::validated_identifier( static::table_name() );
-		$wpdb->query( "TRUNCATE $table_name" );
-		if ( $disable_fk_check ) {
-			$wpdb->query( "SET FOREIGN_KEY_CHECKS = 1; " );
+		try {
+			$table_name = static::validated_identifier( static::table_name() );
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabellenname wurde mit validated_identifier() geprüft.
+			$wpdb->query( "TRUNCATE $table_name" );
+		} finally {
+			if ( $disable_fk_check ) {
+				$wpdb->query( "SET FOREIGN_KEY_CHECKS = 1; " );
+			}
 		}
 		static::afterTruncate();
 	}
 
 
 	public static function get_by_id( int|null $id ): null|object {
-		if ( $id == null ) {
+		if ( $id === null ) {
 			return null;
 		}
 
@@ -46,11 +63,11 @@ class FlzWpdbObject {
 	}
 
 	/**
-	 * Retrieves one object using equality comparisons joined with AND.
+	 * Liefert das erste Objekt, das alle angegebenen Feldwerte erfüllt.
 	 *
-	 * Null values are translated to IS NULL. Array values are translated to
-	 * IN clauses. Column names are restricted to SQL identifiers and all values
-	 * are passed through $wpdb->prepare().
+	 * Nullwerte werden als IS NULL und Arraywerte als IN-Bedingung behandelt.
+	 * Spaltennamen werden validiert; sämtliche Nutzwerte gehen als Platzhalter
+	 * an $wpdb->prepare().
 	 */
 	public static function get_by_fields( array $fields ): null|object {
 		if ( empty( $fields ) ) {
@@ -63,7 +80,11 @@ class FlzWpdbObject {
 	}
 
 	/**
-	 * Safe list query for equality, NULL and IN conditions.
+	 * Liefert Objekte anhand sicher aufgebauter Gleichheitsbedingungen.
+	 *
+	 * Mehrere Felder werden mit AND verknüpft. Die Sortierrichtung wird auf ASC
+	 * oder DESC begrenzt. SQL-Operatoren können nicht von Aufrufern übergeben
+	 * werden.
 	 */
 	public static function get_all_by(
 		array $fields = [],
@@ -73,21 +94,24 @@ class FlzWpdbObject {
 	): array {
 		global $wpdb;
 
-		$table = static::validated_identifier( static::table_name() );
+		$table    = static::validated_identifier( static::table_name() );
 		$order_by = static::validated_identifier( $order_by );
-		$order = strtoupper( $order ) === 'DESC' ? 'DESC' : 'ASC';
+		$order    = strtoupper( $order ) === 'DESC' ? 'DESC' : 'ASC';
 		[ $where_sql, $values ] = static::build_where_clause( $fields );
 
+		// Alle dynamischen SQL-Fragmente wurden zuvor intern validiert/erzeugt.
 		$query = "SELECT * FROM $table$where_sql ORDER BY $order_by $order";
 		if ( $limit !== null ) {
 			$query .= ' LIMIT %d';
 			$values[] = max( 0, $limit );
 		}
 		if ( ! empty( $values ) ) {
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query enthält nur validierte Fragmente und Platzhalter.
 			$query = $wpdb->prepare( $query, $values );
 		}
 
 		$objects = [];
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query enthält keine ungeprüften SQL-Fragmente.
 		foreach ( $wpdb->get_results( $query ) as $result ) {
 			$objects[] = static::createObjectFromResult( $result );
 		}
@@ -96,41 +120,68 @@ class FlzWpdbObject {
 	}
 
 
-	protected static function createObjectFromResult( $result ): object {
+	/**
+	 * Wandelt eine Datenbankzeile in das konkrete Modell um.
+	 *
+	 * Eine Spalte wie teacher_id wird nur dann als Beziehung aufgelöst, wenn
+	 * das Modell eine passend typisierte Property $teacher besitzt und deren
+	 * Klasse von FlzWpdbObject erbt. Unbekannte *_id-Spalten bleiben Rohwerte;
+	 * dadurch führen Schemaerweiterungen nicht zu Reflection-Fatal-Errors.
+	 */
+	protected static function createObjectFromResult( object $result ): object {
+		$cleaned_params = [];
+		foreach ( get_object_vars( $result ) as $key => $value ) {
+			$property_name = str_ends_with( $key, '_id' ) ? substr( $key, 0, -3 ) : null;
+			$relation_class = $property_name ? static::relation_class_for_property( $property_name ) : null;
 
-		$params         = get_object_vars( $result );
-		$cleaned_params = array();
-		foreach ( $params as $key => $val ) {
-			$split_key = explode( "_", $key );
-			if ( isset( $split_key[1] ) && $split_key[1] == "id" ) {
-				try {
-					// Use reflection to get the type of this property
-					$reflectionProperty = new ReflectionProperty( static::class, $split_key[0] );
-					$type               = $reflectionProperty->getType()->getName();
-					// Ensure the class name is capitalized
-					$class_name = ucfirst( $type );
-
-					// Ensure that this class exists
-					if ( class_exists( $class_name )) {
-						$val = $class_name::get_by_id( $val );
-
-					}
-					$cleaned_params[ $split_key[0] ] = $val;
-				} catch ( ReflectionException $e ) {
-					// Handle the exception here
-					// You can log it or throw it further
-					write_log( $e );
-					$val = null;
-					//throw $e;
-				}
-			} else {
-				$cleaned_params[ $key ] = $val;
+			if ( $relation_class === null ) {
+				$cleaned_params[ $key ] = $value;
+				continue;
 			}
 
+			$cleaned_params[ $property_name ] = $value === null
+				? null
+				: $relation_class::get_by_id( (int) $value );
 		}
 
 		return new static( $cleaned_params );
+	}
 
+	/**
+	 * Ermittelt die Modellklasse einer typisierten Beziehungs-Property.
+	 */
+	private static function relation_class_for_property( string $property_name ): string|null {
+		try {
+			$property = new ReflectionProperty( static::class, $property_name );
+		} catch ( ReflectionException ) {
+			return null;
+		}
+
+		$type       = $property->getType();
+		$type_names = [];
+		if ( $type instanceof ReflectionNamedType ) {
+			$type_names[] = $type;
+		} elseif ( $type instanceof ReflectionUnionType ) {
+			$type_names = $type->getTypes();
+		}
+
+		$relation_class = null;
+		foreach ( $type_names as $named_type ) {
+			if ( $named_type->isBuiltin() || $named_type->getName() === 'null' ) {
+				continue;
+			}
+			if ( $relation_class !== null ) {
+				// Mehrdeutige Union-Typen werden nicht automatisch aufgelöst.
+				return null;
+			}
+			$relation_class = $named_type->getName();
+		}
+
+		if ( $relation_class === null || ! is_subclass_of( $relation_class, self::class ) ) {
+			return null;
+		}
+
+		return $relation_class;
 	}
 
 	protected static function table_name(): string {
@@ -141,7 +192,7 @@ class FlzWpdbObject {
 
 	private static function validated_identifier( string $identifier ): string {
 		if ( ! preg_match( '/^[A-Za-z_][A-Za-z0-9_]*$/', $identifier ) ) {
-			throw new \InvalidArgumentException( 'Invalid SQL identifier.' );
+			throw new \InvalidArgumentException( 'Ungültiger SQL-Bezeichner.' );
 		}
 
 		return $identifier;
@@ -166,11 +217,21 @@ class FlzWpdbObject {
 					continue;
 				}
 				$placeholders = [];
+				$contains_null = false;
 				foreach ( $value as $item ) {
+					if ( $item === null ) {
+						$contains_null = true;
+						continue;
+					}
 					$placeholders[] = static::placeholder_for( $item );
 					$values[] = $item;
 				}
-				$conditions[] = "$column IN (" . implode( ', ', $placeholders ) . ')';
+				if ( empty( $placeholders ) ) {
+					$conditions[] = "$column IS NULL";
+					continue;
+				}
+				$in_condition = "$column IN (" . implode( ', ', $placeholders ) . ')';
+				$conditions[] = $contains_null ? "($in_condition OR $column IS NULL)" : $in_condition;
 				continue;
 			}
 
@@ -182,8 +243,8 @@ class FlzWpdbObject {
 	}
 
 	private static function placeholder_for( $value ): string {
-		if ( ! is_scalar( $value ) && $value !== null ) {
-			throw new \InvalidArgumentException( 'Invalid SQL comparison value.' );
+		if ( ! is_scalar( $value ) ) {
+			throw new \InvalidArgumentException( 'Ungültiger SQL-Vergleichswert.' );
 		}
 		if ( is_bool( $value ) || is_int( $value ) ) {
 			return '%d';
@@ -196,7 +257,6 @@ class FlzWpdbObject {
 	}
 
 	public static function create_table(): void {
-		//write_log("in create table");
 		global $wpdb;
 		static::beforeCreate();
 		$charset_collate = $wpdb->get_charset_collate();
@@ -204,8 +264,8 @@ class FlzWpdbObject {
 		$table_schema    = static::get_table_schema();
 
 		if ( ! empty( $table_schema ) ) {
+			// Das Schema stammt ausschließlich aus der konkreten Modellklasse.
 			$sql = "CREATE TABLE $table_name $table_schema $charset_collate;";
-			//write_log( $sql);
 			require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 			dbDelta( $sql );
 		}
@@ -229,14 +289,14 @@ class FlzWpdbObject {
 			$result = $wpdb->insert( $table_name, $data );
 			if ( $result !== false ) {
 				$this->id = $wpdb->insert_id;
-				$this->afterInsert();
+				static::afterInsert();
 			}
 		}
 		return $result;
 	}
 
 	protected function prepareDataForSaving(): array {
-		// Implement this method in each subclass to prepare the data for saving.
+		// Unterklassen liefern hier ausschließlich bekannte Tabellenspalten.
 		return [];
 	}
 
@@ -244,13 +304,13 @@ class FlzWpdbObject {
 	public function delete(): int|false {
 		global $wpdb;
 
-		$this->beforeDelete();
+		static::beforeDelete();
 		$result = $wpdb->delete(
 			static::validated_identifier( static::table_name() ),
 			array( 'id' => $this->id ),
 			array( '%d' )
 		);
-		$this->afterDelete();
+		static::afterDelete();
 
 		return $result;
 	}
@@ -260,44 +320,47 @@ class FlzWpdbObject {
 
 		$table = static::validated_identifier( static::table_name() );
 		[ $where_sql, $values ] = static::build_where_clause( $fields );
+		// Alle dynamischen SQL-Fragmente wurden zuvor intern validiert/erzeugt.
 		$query = "SELECT COUNT(*) FROM $table$where_sql";
 		if ( ! empty( $values ) ) {
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query enthält nur validierte Fragmente und Platzhalter.
 			$query = $wpdb->prepare( $query, $values );
 		}
 
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query enthält keine ungeprüften SQL-Fragmente.
 		return (int) $wpdb->get_var( $query );
 	}
 
-	protected static function beforeCreate() {
-		// Implement this method in each subclass for actions to perform before Creation.
+	protected static function beforeCreate(): void {
+		// Optionaler Hook vor dem Anlegen einer Tabelle.
 	}
 
-	protected static function afterCreate() {
-		// Implement this method in each subclass for actions to perform after creation.
+	protected static function afterCreate(): void {
+		// Optionaler Hook nach dem Anlegen einer Tabelle.
 	}
 
-	protected static function beforeInsert() {
-		// Implement this method in each subclass for actions to perform before insertion.
+	protected static function beforeInsert(): void {
+		// Historischer Hook vor INSERT und UPDATE.
 	}
 
-	protected static function afterInsert() {
-		// Implement this method in each subclass for actions to perform after insertion.
+	protected static function afterInsert(): void {
+		// Optionaler Hook nach einem erfolgreichen INSERT.
 	}
 
-	protected static function beforeTruncate() {
-		// Implement this method in each subclass for actions to perform before insertion.
+	protected static function beforeTruncate(): void {
+		// Optionaler Hook vor dem Leeren einer Tabelle.
 	}
 
-	protected static function afterTruncate() {
-		// Implement this method in each subclass for actions to perform after insertion.
+	protected static function afterTruncate(): void {
+		// Optionaler Hook nach dem Leeren einer Tabelle.
 	}
 
-	protected static function beforeDelete() {
-		// Implement this method in each subclass for actions to perform before deletion.
+	protected static function beforeDelete(): void {
+		// Historischer Hook vor dem Löschen einer Zeile oder Tabelle.
 	}
 
-	protected static function afterDelete() {
-		// Implement this method in each subclass for actions to perform after deletion.
+	protected static function afterDelete(): void {
+		// Historischer Hook nach dem Löschen einer Zeile oder Tabelle.
 	}
 
 	public function getCsvLine(): string {
@@ -315,24 +378,30 @@ class FlzWpdbObject {
 		return implode( ';', $values );
 	}
 
-	public function assignPostData(array $data, array|null $allowed_fields = null): void
-	{
-		foreach ($data as $key => $value) {
-			if ( ! is_string( $key ) || ! property_exists( $this, $key ) ) {
+	/**
+	 * Übernimmt skalare Formulardaten in öffentliche Modell-Properties.
+	 *
+	 * Die Datenbank-ID wird grundsätzlich nicht übernommen. Aufrufer sollten
+	 * zusätzlich eine explizite Feldliste übergeben, damit interne Felder
+	 * wie Status oder Bestätigungstoken nicht per Mass Assignment änderbar sind.
+	 */
+	public function assignPostData( array $data, array $allowed_fields ): void {
+		foreach ( $data as $key => $value ) {
+			if ( ! is_string( $key ) || $key === 'id' || ! property_exists( $this, $key ) ) {
 				continue;
 			}
-			if ( $allowed_fields !== null && ! in_array( $key, $allowed_fields, true ) ) {
+			if ( ! in_array( $key, $allowed_fields, true ) ) {
 				continue;
 			}
 			$property = new ReflectionProperty( $this, $key );
 			if ( ! $property->isPublic() || $property->isStatic() || is_array( $value ) || is_object( $value ) ) {
 				continue;
 			}
-			$type = $property->getType();
-			if ( $type instanceof \ReflectionNamedType && ! $type->isBuiltin() ) {
+		$type = $property->getType();
+		if ( $type instanceof ReflectionNamedType && ! $type->isBuiltin() ) {
 				continue;
 			}
-			if ( $type instanceof \ReflectionUnionType ) {
+		if ( $type instanceof ReflectionUnionType ) {
 				$contains_object_type = false;
 				foreach ( $type->getTypes() as $named_type ) {
 					if ( $named_type->getName() !== 'null' && ! $named_type->isBuiltin() ) {
@@ -351,16 +420,17 @@ class FlzWpdbObject {
 		}
 	}
 
-	private static function sanitize_property_value( ReflectionProperty $property, string $key, $value ) {
+	private static function sanitize_property_value( ReflectionProperty $property, string $key, $value ): mixed {
+		$value = wp_unslash( $value );
 		if ( $key === 'email' ) {
 			return sanitize_email( $value );
 		}
 
-		$type = $property->getType();
-		$type_name = $type instanceof \ReflectionNamedType ? $type->getName() : '';
+		$type      = $property->getType();
+		$type_name = $type instanceof ReflectionNamedType ? $type->getName() : '';
 		return match ( $type_name ) {
-			'int' => intval( $value ),
-			'float' => floatval( $value ),
+			'int' => (int) $value,
+			'float' => (float) $value,
 			'bool' => filter_var( $value, FILTER_VALIDATE_BOOLEAN ),
 			default => sanitize_text_field( $value ),
 		};
