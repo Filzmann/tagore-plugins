@@ -3,6 +3,7 @@
 namespace flz_wpdb_objects;
 
 require_once __DIR__ . '/FlzWpdbObjectsException.php';
+require_once __DIR__ . '/FlzWpdbTransaction.php';
 
 use ReflectionException;
 use ReflectionNamedType;

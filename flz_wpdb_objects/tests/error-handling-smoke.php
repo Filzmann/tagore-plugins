@@ -38,6 +38,7 @@ require_once dirname( __DIR__ ) . '/flz_wpdb_objects.php';
 
 use flz_wpdb_objects\FlzWpdbObject;
 use flz_wpdb_objects\FlzWpdbObjectsException;
+use flz_wpdb_objects\FlzWpdbTransaction;
 
 final class FlzWpdbObjectsFakeWpdb {
 	public string $prefix = 'wp_';
@@ -48,6 +49,7 @@ final class FlzWpdbObjectsFakeWpdb {
 	public array $results = [];
 	public int $count = 0;
 	public int $delete_result = 1;
+	public array $commands = [];
 
 	public function reset(): void {
 		$this->last_error = '';
@@ -57,6 +59,7 @@ final class FlzWpdbObjectsFakeWpdb {
 		$this->results    = [];
 		$this->count      = 0;
 		$this->delete_result = 1;
+		$this->commands = [];
 	}
 
 	public function prepare( string $query, ...$args ) {
@@ -76,8 +79,12 @@ final class FlzWpdbObjectsFakeWpdb {
 			str_starts_with( $query, 'TRUNCATE ' ) => 'truncate',
 			str_contains( $query, 'FOREIGN_KEY_CHECKS = 0' ) => 'disable_fk',
 			str_contains( $query, 'FOREIGN_KEY_CHECKS = 1' ) => 'enable_fk',
+			$query === 'START TRANSACTION' => 'start_transaction',
+			$query === 'COMMIT' => 'commit',
+			$query === 'ROLLBACK' => 'rollback',
 			default => 'query',
 		};
+		$this->commands[] = $operation;
 
 		return $this->outcome( $operation, 1 );
 	}
@@ -211,6 +218,45 @@ $wpdb->count = 3;
 flz_test_check( FlzWpdbObjectsTestRecord::count_by() === 3, 'Erfolgreiches COUNT fehlgeschlagen.' );
 $dauer = ( new FlzZeitraum( [ 'beginn' => 0, 'ende' => 90061 ] ) )->dauer();
 flz_test_check( $dauer['Tage'] === 1 && $dauer['Stunden'] === 1, 'Erfolgreiche Dauerberechnung fehlgeschlagen.' );
+
+$wpdb->reset();
+$transaction_result = FlzWpdbTransaction::run( static fn() => 17, 'Erfolgreicher Testvorgang' );
+flz_test_check( $transaction_result === 17, 'Transaktions-Rückgabewert ging verloren.' );
+flz_test_check(
+	$wpdb->commands === [ 'start_transaction', 'commit' ],
+	'Erfolgreiche Transaktion führte nicht START und COMMIT aus.'
+);
+
+$wpdb->reset();
+flz_test_expect_exception(
+	static fn() => FlzWpdbTransaction::run(
+		static function (): void {
+			throw new RuntimeException( 'Simulierter Callback-Fehler' );
+		},
+		'Fehlgeschlagener Testvorgang'
+	),
+	FlzWpdbObjectsException::class,
+	[ 'Fehlgeschlagener Testvorgang', 'Simulierter Callback-Fehler' ],
+	true
+);
+flz_test_check(
+	$wpdb->commands === [ 'start_transaction', 'rollback' ],
+	'Fehlgeschlagene Transaktion führte kein ROLLBACK aus.'
+);
+
+$wpdb->reset();
+$wpdb->errors['rollback'] = 'Simulierter ROLLBACK-Fehler';
+flz_test_expect_exception(
+	static fn() => FlzWpdbTransaction::run(
+		static function (): void {
+			throw new RuntimeException( 'Simulierter Primärfehler' );
+		},
+		'Doppelter Fehlerfall'
+	),
+	FlzWpdbObjectsException::class,
+	[ 'Simulierter Primärfehler', 'Rollback fehlgeschlagen', 'Simulierter ROLLBACK-Fehler' ],
+	true
+);
 
 $wpdb->reset();
 $wpdb->errors['get_results'] = 'Simulierter SELECT-Fehler';

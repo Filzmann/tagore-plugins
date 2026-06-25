@@ -3,7 +3,7 @@
 Plugin Name: flz_wpdb_objects
 Plugin URI: Deine Plugin-URI
 Description: Stellt WordPress-Datenbankfunktionen als einfache CRUD-Modelle zur Verfügung
-Version: 1.2.0
+Version: 1.3.0
 Author: Filzmann
 Author URI: Deine Autor-URI
 License: GPLv2 or later
