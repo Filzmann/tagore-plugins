@@ -17,6 +17,7 @@ find \
   flz_wpdb_objects \
   flz_shortcode_redirect \
   flz_ags \
+  flz_ui_components \
   -type f -name '*.php' \
   -print0 \
   | xargs -0 -n1 php -l

@@ -4,13 +4,20 @@ Dieses Repository enthält ausschließlich eigene WordPress-Plugins für das Tag
 
 ## Geltungsbereich
 
-Bearbeitet werden dürfen nur diese Plugin-Verzeichnisse:
+Dieses Repository `~/projects/tagore-plugins` enthält ausschließlich eigene WordPress-Plugins für das Tagore-Gymnasium. Grundsätzlich dürfen deshalb alle Plugin-Verzeichnisse in diesem Repository bearbeitet werden, solange sie eigene Tagore-Plugins sind und die übrigen Regeln eingehalten werden.
+
+Aktuell gehören dazu insbesondere:
 
 - flz_elternsprechtag
 - flz_probeunterricht
 - flz_wpdb_objects
 - flz_ags
 - flz_shortcode_redirect
+- flz_ui_components
+
+Neue eigene Plugins dürfen in diesem Repository ergänzt werden, wenn sie der `flz_`-Namenskonvention folgen.
+
+Die Plugins aus `~/projects/tagore-plugins` müssen im eigentlichen WordPress-Plugin-Verzeichnis immer per Symlink verfügbar gemacht werden. Im WordPress-Plugin-Verzeichnis selbst werden außer dem Anlegen, Prüfen oder Entfernen dieser Symlinks keine Plugin-Dateien verändert.
 
 Nicht bearbeitet werden dürfen:
 

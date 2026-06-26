@@ -28,6 +28,183 @@ function flz_wpdb_objects_activate(): void {}
 function flz_wpdb_objects_deactivate(): void {}
 
 /**
+ * Verhindert, dass Tabellenkalkulationen CSV-Zellen als Formel ausführen.
+ *
+ * @param mixed $value Zellwert.
+ */
+function flz_wpdb_objects_csv_safe_cell($value): string {
+	$value = (string) $value;
+
+	return preg_match( '/^[=+\-@]/', $value ) ? "'" . $value : $value;
+}
+
+/**
+ * Baut eine CSV-Datei im Speicher.
+ *
+ * @param array<int,mixed> $header Kopfzeile.
+ * @param array<int,array<int,mixed>> $rows Datenzeilen.
+ *
+ * @throws flz_wpdb_objects\FlzWpdbObjectsException Bei Stream-/Schreibfehlern.
+ */
+function flz_wpdb_objects_build_csv_string(
+	array $header,
+	array $rows,
+	string $delimiter = ';',
+	bool $with_bom = true
+): string {
+	$out = fopen( 'php://temp', 'w+b' );
+	if ( $out === false ) {
+		throw flz_wpdb_objects\FlzWpdbObjectsException::file_system(
+			'Öffnen des temporären CSV-Speichers',
+			'php://temp'
+		);
+	}
+
+	$pending_error = null;
+	try {
+		if ( $with_bom && fwrite( $out, chr( 0xEF ) . chr( 0xBB ) . chr( 0xBF ) ) !== 3 ) {
+			throw flz_wpdb_objects\FlzWpdbObjectsException::file_system(
+				'Schreiben der CSV-Kodierungsmarkierung',
+				'php://temp'
+			);
+		}
+
+		if ( ! empty( $header ) && fputcsv( $out, array_map( 'flz_wpdb_objects_csv_safe_cell', $header ), $delimiter ) === false ) {
+			throw flz_wpdb_objects\FlzWpdbObjectsException::file_system(
+				'Schreiben der CSV-Kopfzeile',
+				'php://temp'
+			);
+		}
+
+		foreach ( $rows as $index => $row ) {
+			if ( ! is_array( $row ) ) {
+				throw new InvalidArgumentException(
+					'Die CSV-Zeile mit Index "' . (string) $index . '" muss ein Array sein.'
+				);
+			}
+			if ( fputcsv( $out, array_map( 'flz_wpdb_objects_csv_safe_cell', $row ), $delimiter ) === false ) {
+				throw flz_wpdb_objects\FlzWpdbObjectsException::file_system(
+					'Schreiben der CSV-Datenzeile mit Index ' . (string) $index,
+					'php://temp'
+				);
+			}
+		}
+
+		if ( ! rewind( $out ) ) {
+			throw flz_wpdb_objects\FlzWpdbObjectsException::file_system(
+				'Zurücksetzen des CSV-Datenstroms',
+				'php://temp'
+			);
+		}
+
+		$csv = stream_get_contents( $out );
+		if ( $csv === false ) {
+			throw flz_wpdb_objects\FlzWpdbObjectsException::file_system(
+				'Lesen des fertigen CSV-Datenstroms',
+				'php://temp'
+			);
+		}
+	} catch ( Throwable $error ) {
+		$pending_error = $error;
+	}
+
+	if ( ! fclose( $out ) && $pending_error === null ) {
+		throw flz_wpdb_objects\FlzWpdbObjectsException::file_system(
+			'Schließen des temporären CSV-Speichers',
+			'php://temp'
+		);
+	}
+
+	if ( $pending_error !== null ) {
+		throw $pending_error;
+	}
+
+	return $csv;
+}
+
+/**
+ * Liest ein hochgeladenes CSV-Feld sicher in Zeilen ein.
+ *
+ * Nonce- und Berechtigungsprüfung bleiben bewusst Aufgabe des aufrufenden
+ * Workflows. Diese Funktion kümmert sich nur um Dateiart, Öffnen/Schließen und
+ * saubere Fehlerkontexte.
+ *
+ * @return array<int,array<int,string|null>>
+ *
+ * @throws RuntimeException|InvalidArgumentException|flz_wpdb_objects\FlzWpdbObjectsException
+ */
+function flz_wpdb_objects_read_uploaded_csv(
+	string $file_field,
+	string $operation,
+	bool $skip_header = true,
+	string $delimiter = ';'
+): array {
+	if ( '' === trim( $file_field ) ) {
+		throw new InvalidArgumentException( 'Das Upload-Feld für den CSV-Import darf nicht leer sein.' );
+	}
+
+	// Nonce- und Berechtigungsprüfung erfolgen im aufrufenden Admin-Workflow,
+	// damit dieser generische Dateihelper keine fachlichen Formularaktionen kennen muss.
+	// phpcs:disable WordPress.Security.NonceVerification.Missing
+	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Dateiupload wird feldbezogen geprüft und der Name anschließend bereinigt.
+	if ( ! isset( $_FILES[ $file_field ]['tmp_name'], $_FILES[ $file_field ]['name'] ) ) {
+		throw new RuntimeException( 'Keine CSV-Datei hochgeladen.' );
+	}
+
+	$file_original_name = sanitize_file_name( wp_unslash( $_FILES[ $file_field ]['name'] ) );
+	$file_path          = sanitize_text_field( wp_unslash( $_FILES[ $file_field ]['tmp_name'] ) );
+	// phpcs:enable WordPress.Security.NonceVerification.Missing
+	if ( strtolower( pathinfo( $file_original_name, PATHINFO_EXTENSION ) ) !== 'csv' ) {
+		throw new InvalidArgumentException( 'Das ist keine CSV-Datei.' );
+	}
+
+	error_clear_last();
+	$file_handle = @fopen( $file_path, 'rb' );
+	if ( $file_handle === false ) {
+		$php_error = error_get_last();
+		throw flz_wpdb_objects\FlzWpdbObjectsException::file_system(
+			'Öffnen der CSV-Datei zum Lesen',
+			$file_original_name,
+			(string) ( $php_error['message'] ?? '' )
+		);
+	}
+
+	$rows          = array();
+	$pending_error = null;
+	try {
+		if ( $skip_header ) {
+			fgetcsv( $file_handle, 0, $delimiter );
+		}
+
+		while ( ( $line = fgetcsv( $file_handle, 0, $delimiter ) ) !== false ) {
+			$rows[] = $line;
+		}
+	} catch ( Throwable $error ) {
+		$pending_error = flz_wpdb_objects\FlzWpdbObjectsException::operation(
+			$operation,
+			'CSV-Upload ' . $file_original_name,
+			$error
+		);
+	}
+
+	error_clear_last();
+	if ( ! @fclose( $file_handle ) && $pending_error === null ) {
+		$php_error = error_get_last();
+		throw flz_wpdb_objects\FlzWpdbObjectsException::file_system(
+			'Schließen der CSV-Datei',
+			$file_original_name,
+			(string) ( $php_error['message'] ?? '' )
+		);
+	}
+
+	if ( $pending_error !== null ) {
+		throw $pending_error;
+	}
+
+	return $rows;
+}
+
+/**
  * Schreibt Modellobjekte als CSV-Datei in das WordPress-Uploadverzeichnis.
  *
  * Der Dateiname wird auf einen einfachen CSV-Basisnamen begrenzt. Die Funktion

@@ -7,6 +7,11 @@
 	<arg name="parallel" value="4"/>
 
 	<file>flz_ags</file>
+	<file>flz_elternsprechtag</file>
+	<file>flz_probeunterricht</file>
+	<file>flz_shortcode_redirect</file>
+	<file>flz_ui_components</file>
+	<file>flz_wpdb_objects</file>
 
 	<exclude-pattern>*/vendor/*</exclude-pattern>
 
