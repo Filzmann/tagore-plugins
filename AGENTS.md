@@ -41,6 +41,14 @@ Das AG-Plugin heißt `flz_ags`. Für AG-bezogene neue Namen gelten `flz_ags`, `f
 
 Änderungen erfolgen lokal in DDEV. Danach wird getestet. Erst danach darf ein Transfer nach Staging vorbereitet werden. Production wird nie direkt geändert.
 
+## Demo- und Seed-Daten
+
+Demo-, Test- und Seed-Daten sollen bevorzugt aus lokal vorhandenen, verwalteten WordPress-Strukturen oder Plugin-Daten abgeleitet werden, z. B. aus bestehenden Seiten, Beiträgen, Optionen oder Modelltabellen.
+
+Keine harten Demo-Listen aus externen Produktions-URLs, kopierten Live-Daten oder frei erfundenen fachlichen Platzhaltern verwenden, wenn die Daten lokal aus der WordPress-Struktur gewonnen werden können.
+
+Falls Demo-Daten nicht zuverlässig ableitbar sind, müssen fehlende Felder klar leer bleiben oder als nicht verfügbar behandelt werden, statt fachliche Scheindaten zu erzeugen.
+
 ## Sicherheitsregeln für WordPress-Code
 
 Bei jeder Änderung sind zu prüfen:
