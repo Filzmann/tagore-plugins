@@ -110,6 +110,51 @@ class FlzWpdbObjectsException extends RuntimeException {
 		);
 	}
 
+	/**
+	 * Beschreibt eine Exception samt Ursachekette in einer einzeiligen Logform.
+	 *
+	 * UI-Code darf diese Meldung nicht direkt ausgeben: Sie enthält bewusst
+	 * technische Details. Für Besucher und Redakteure bleibt die App zuständig
+	 * und gibt dort sichere, fachliche Meldungen aus.
+	 */
+	public static function describe_chain( Throwable $error ): string {
+		$messages = array();
+		$current  = $error;
+
+		do {
+			$message = self::normalize_message( $current->getMessage() );
+			if ( $message === '' ) {
+				$message = 'keine Detailmeldung';
+			}
+
+			$messages[] = get_class( $current ) . ': ' . $message;
+			$current    = $current->getPrevious();
+		} while ( $current instanceof Throwable );
+
+		return implode( ' <- ', $messages );
+	}
+
+	/**
+	 * Protokolliert eine technische Ursache mit Plugin- und Vorgangskontext.
+	 *
+	 * Die Funktion zentralisiert nur das technische Logformat. Die sichtbare
+	 * Fehlerbehandlung bleibt in den Fachplugins, damit jede App passende und
+	 * sichere Hinweise an Admins oder Besucher geben kann.
+	 */
+	public static function log_error( Throwable $error, string $plugin_slug, string $context ): void {
+		$plugin_slug = trim( preg_replace( '/[^a-z0-9_\\-]/i', '', $plugin_slug ) ?? $plugin_slug );
+		if ( $plugin_slug === '' ) {
+			$plugin_slug = 'flz';
+		}
+
+		$context = self::normalize_message( $context );
+		if ( $context === '' ) {
+			$context = 'Unbenannter Vorgang';
+		}
+
+		error_log( '[' . $plugin_slug . '] ' . $context . ' | ' . self::describe_chain( $error ) );
+	}
+
 	private static function normalize_message( string $message ): string {
 		return trim( preg_replace( '/\s+/', ' ', $message ) ?? $message );
 	}

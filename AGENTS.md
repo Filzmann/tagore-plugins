@@ -41,6 +41,14 @@ Das AG-Plugin heißt `flz_ags`. Für AG-bezogene neue Namen gelten `flz_ags`, `f
 
 Änderungen erfolgen lokal in DDEV. Danach wird getestet. Erst danach darf ein Transfer nach Staging vorbereitet werden. Production wird nie direkt geändert.
 
+## Demo- und Seed-Daten
+
+Demo-, Test- und Seed-Daten sollen bevorzugt aus lokal vorhandenen, verwalteten WordPress-Strukturen oder Plugin-Daten abgeleitet werden, z. B. aus bestehenden Seiten, Beiträgen, Optionen oder Modelltabellen.
+
+Keine harten Demo-Listen aus externen Produktions-URLs, kopierten Live-Daten oder frei erfundenen fachlichen Platzhaltern verwenden, wenn die Daten lokal aus der WordPress-Struktur gewonnen werden können.
+
+Falls Demo-Daten nicht zuverlässig ableitbar sind, müssen fehlende Felder klar leer bleiben oder als nicht verfügbar behandelt werden, statt fachliche Scheindaten zu erzeugen.
+
 ## Sicherheitsregeln für WordPress-Code
 
 Bei jeder Änderung sind zu prüfen:
@@ -64,6 +72,26 @@ Jede Änderung an flz_wpdb_objects braucht deshalb:
 - Liste der betroffenen abhängigen Plugins
 - Rückwärtskompatibilitätsprüfung
 - Migrationshinweis, falls Datenbankstruktur oder API geändert wird
+
+## Gemeinsame Best Practices
+
+Bei Refactorings, Sicherheitsarbeiten, UI-Zentralisierung und wiederkehrenden
+Fehlerbildern ist aktiv zu prüfen, ob daraus eine allgemeine Best Practice für
+die eigenen Tagore-Plugins entsteht. Solche Erkenntnisse sollen nicht nur lokal
+im betroffenen Plugin umgesetzt, sondern dem Nutzer kurz zur Aufnahme in diese
+`AGENTS.md` vorgeschlagen werden. Nach ausdrücklicher Zustimmung werden sie hier
+als gemeinsame Arbeitsregel dokumentiert.
+
+Frontend-Shortcodes eigener Plugins sollen, wenn sie redaktionell in Seiten
+eingefügt werden, zusätzlich über `flz_ui_register_shortcode_block()` aus
+`flz_ui_components` als Gutenberg-Block registriert werden. Der Shortcode darf
+als stabile Rendering-Grenze bestehen bleiben; neue oder gepflegte Seiten sollen
+aber bevorzugt den Block verwenden.
+
+Technische Fehlerketten eigener Plugins sollen zentral über
+`flz_wpdb_objects\FlzWpdbObjectsException::log_error()` protokolliert werden.
+Sichtbare Fehlermeldungen bleiben Aufgabe des jeweiligen Fachplugins und müssen
+sicher, knapp und ohne interne Details formuliert sein.
 
 ## Arbeitsweise
 

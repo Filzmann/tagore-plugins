@@ -230,6 +230,21 @@ flz_ui_components_renderer_assert(false !== strpos($action_form, '<form'), 'Acti
 flz_ui_components_renderer_assert(false !== strpos($action_form, 'name="record_id"'), 'Action Form übernimmt Hidden Fields nicht.');
 flz_ui_components_renderer_assert(false !== strpos($action_form, 'window.confirm'), 'Action Form übernimmt riskantes Button-Preset nicht.');
 
+$floating_panel = $renderer->floating_action_panel(
+    array(
+        'id'           => 'demo-registration',
+        'title'        => 'Anmeldung',
+        'button_label' => 'Zur Anmeldung',
+        'content'      => '<form><input name="demo" value="1"></form>',
+        'open'         => true,
+    )
+);
+flz_ui_components_renderer_assert(false !== strpos($floating_panel, 'flz-ui-floating-panel'), 'Floating Action Panel rendert keine Panel-Klasse.');
+flz_ui_components_renderer_assert(false !== strpos($floating_panel, 'data-flz-ui-floating-panel-open'), 'Floating Action Panel rendert keinen Öffnen-Trigger.');
+flz_ui_components_renderer_assert(false !== strpos($floating_panel, 'flz-ui-floating-panel__drawer'), 'Floating Action Panel rendert keinen Drawer.');
+flz_ui_components_renderer_assert(false !== strpos($floating_panel, '<form><input name="demo"'), 'Floating Action Panel erhält Formular-HTML nicht.');
+flz_ui_components_renderer_assert(false !== strpos($floating_panel, 'is-open'), 'Floating Action Panel übernimmt offenen Startzustand nicht.');
+
 $csv_panel = $renderer->csv_panel(
     array(
         'title'  => 'CSV-Demo',

@@ -1,15 +1,15 @@
 <?php
 /**
- * Plugin Name: Tagore UI Components
+ * Plugin Name: FLZ UI Components
  * Description: Gemeinsame UI-Komponenten, Formularfelder und Validierung für eigene Tagore-Plugins.
- * Version: 0.1.5
+ * Version: 0.1.10
  * Author: Tagore-Gymnasium / Simon
  * Text Domain: flz-ui-components
  */
 
 defined('ABSPATH') || exit;
 
-define('FLZ_UI_COMPONENTS_VERSION', '0.1.5');
+define('FLZ_UI_COMPONENTS_VERSION', '0.1.10');
 define('FLZ_UI_COMPONENTS_FILE', __FILE__);
 define('FLZ_UI_COMPONENTS_DIR', plugin_dir_path(__FILE__));
 define('FLZ_UI_COMPONENTS_URL', plugins_url('flz_ui_components/'));
@@ -17,11 +17,14 @@ define('FLZ_UI_COMPONENTS_URL', plugins_url('flz_ui_components/'));
 require_once FLZ_UI_COMPONENTS_DIR . 'includes/class-flz-ui-components-validation-result.php';
 require_once FLZ_UI_COMPONENTS_DIR . 'includes/class-flz-ui-components-validator.php';
 require_once FLZ_UI_COMPONENTS_DIR . 'includes/class-flz-ui-components-renderer.php';
+require_once FLZ_UI_COMPONENTS_DIR . 'includes/shortcode-blocks.php';
 require_once FLZ_UI_COMPONENTS_DIR . 'includes/admin-demo.php';
 
 add_action('wp_enqueue_scripts', 'flz_ui_components_enqueue_assets');
 add_action('admin_enqueue_scripts', 'flz_ui_components_enqueue_assets');
 add_action('admin_menu', 'flz_ui_components_register_admin_demo_page');
+add_filter('block_categories_all', 'flz_ui_components_register_block_category');
+add_filter('block_categories', 'flz_ui_components_register_block_category');
 
 /**
  * Lädt die gemeinsamen UI-Assets.

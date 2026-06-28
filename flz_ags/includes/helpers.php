@@ -6,33 +6,11 @@ defined('ABSPATH') || exit;
 // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped
 
 /**
- * Liefert ausschließlich die manuell benannten Tabellen der Version 0.2.x.
- * Neue Abfragen verwenden immer die vom Modell abgeleiteten Tabellennamen.
- */
-function flz_ags_legacy_table(string $name): string
-{
-    global $wpdb;
-
-    if (!in_array($name, array('courses', 'slots', 'registrations'), true)) {
-        throw new InvalidArgumentException('Unbekannte alte AG-Tabelle: ' . $name);
-    }
-
-    return $wpdb->prefix . 'flz_ag_' . $name;
-}
-
-/**
  * Protokolliert technische Ursachen ohne sie an Besucher auszugeben.
  */
 function flz_ags_log_error(Throwable $error, string $context): void
 {
-    $messages = array();
-    $current = $error;
-    do {
-        $messages[] = get_class($current) . ': ' . $current->getMessage();
-        $current = $current->getPrevious();
-    } while ($current instanceof Throwable);
-
-    error_log('[flz_ags] ' . $context . ' | ' . implode(' <- ', $messages));
+    flz_wpdb_objects\FlzWpdbObjectsException::log_error($error, 'flz_ags', $context);
 }
 
 /**
@@ -42,6 +20,8 @@ function flz_ags_error_message(string $code): string
 {
     $messages = array(
         'save-course' => 'Die AG konnte nicht vollständig gespeichert werden. Es wurden keine Teiländerungen übernommen.',
+        'save-course-detail-page' => 'Die AG konnte nicht gespeichert werden: Für eine geöffnete Anmeldung muss eine gültige AG-Detailseite ausgewählt oder angelegt werden.',
+        'save-settings' => 'Die AG-Einstellungen konnten nicht gespeichert werden. Bitte die Angaben prüfen.',
         'install-demo' => 'Die Demo-AGs konnten nicht vollständig angelegt werden. Es wurden keine Teiländerungen übernommen.',
         'update-registration' => 'Die Anmeldung konnte nicht aktualisiert werden.',
         'export' => 'Der CSV-Export konnte nicht erstellt werden.',
@@ -59,21 +39,6 @@ function flz_ags_safe_redirect(string $url): void
         wp_die(esc_html__('Die interne Weiterleitung ist fehlgeschlagen.', 'flz-ags'));
     }
     exit;
-}
-
-/**
- * Verhindert, dass Tabellenkalkulationen Nutzwerte als Formel ausführen.
- *
- * @deprecated Seit 0.3.2 zentral über flz_wpdb_objects_csv_safe_cell().
- */
-function flz_ags_csv_cell($value): string
-{
-    if (function_exists('flz_wpdb_objects_csv_safe_cell')) {
-        return flz_wpdb_objects_csv_safe_cell($value);
-    }
-
-    $value = (string) $value;
-    return preg_match('/^[=+\-@]/', $value) ? "'" . $value : $value;
 }
 
 function flz_ags_manage_capability(): string
@@ -111,15 +76,22 @@ function flz_ags_sanitize_school_year($value): string
 
 function flz_ags_default_classes(): array
 {
+    // Klassenliste für das Anmeldeformular: Schüler*innen wählen ihre echte
+    // Klasse. AG-Zielgruppen werden separat über flz_ags_default_grades()
+    // auf Jahrgänge reduziert.
     return array(
         '7.1', '7.2', '7.3', '7.4', '7.5',
         '8.1', '8.2', '8.3', '8.4', '8.5',
         '9.1', '9.2', '9.3', '9.4', '9.5', '9.6',
         '10.1', '10.2', '10.3', '10.4', '10.5',
-        'WKK1', 'WKK2',
         '11_BENK', '11_BLUM', '11_EDEL', '11_BEYE', '11_JOER', '11_KEYS', '11_KRUE', '11_MOES', '11_REIM', '11_WALT',
         '12_BERT', '12_BEST', '12_BEYE', '12_DITT', '12_DOLE', '12_GROS', '12_GUEN', '12_KELL', '12_BIRK', '12_MOHK', '12_TSCH',
     );
+}
+
+function flz_ags_default_grades(): array
+{
+    return array('7', '8', '9', '10', '11', '12');
 }
 
 function flz_ags_get_classes(): array
@@ -129,7 +101,13 @@ function flz_ags_get_classes(): array
         return flz_ags_default_classes();
     }
 
-    return array_values(array_filter(array_map('sanitize_text_field', $classes)));
+    $classes = flz_ags_normalize_classes($classes);
+
+    if (empty($classes) || flz_ags_classes_are_grade_only($classes)) {
+        return flz_ags_default_classes();
+    }
+
+    return $classes;
 }
 
 function flz_ags_sanitize_classes_from_text(string $text): array
@@ -138,24 +116,128 @@ function flz_ags_sanitize_classes_from_text(string $text): array
     $classes = array();
 
     foreach ((array) $lines as $line) {
-        $line = trim(sanitize_text_field($line));
+        $line = flz_ags_normalize_class_name(sanitize_text_field($line));
         if ($line !== '') {
             $classes[] = $line;
         }
     }
 
-    return array_values(array_unique($classes));
+    $classes = array_values(array_unique($classes));
+
+    return flz_ags_classes_are_grade_only($classes) ? flz_ags_default_classes() : $classes;
+}
+
+function flz_ags_normalize_classes(array $classes): array
+{
+    $normalized = array();
+
+    foreach ($classes as $class_name) {
+        $class_name = flz_ags_normalize_class_name((string) $class_name);
+        if ($class_name !== '') {
+            $normalized[] = $class_name;
+        }
+    }
+
+    return array_values(array_unique($normalized));
+}
+
+function flz_ags_classes_are_grade_only(array $classes): bool
+{
+    if (empty($classes)) {
+        return false;
+    }
+
+    foreach ($classes as $class_name) {
+        if (!in_array((string) $class_name, flz_ags_default_grades(), true)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function flz_ags_normalize_class_name(string $class_name): string
+{
+    $class_name = strtoupper(trim(str_replace("\xc2\xa0", ' ', $class_name)));
+    $class_name = preg_replace('/\s+/', '', $class_name) ?? $class_name;
+    $class_name = preg_replace('/^KLASSE/', '', $class_name) ?? $class_name;
+
+    if (preg_match('/^(7|8|9|10)\.(\d{1,2})$/', $class_name, $matches)) {
+        return $matches[1] . '.' . (int) $matches[2];
+    }
+
+    if (preg_match('/^(11|12)[._-]([A-ZÄÖÜ]{2,})$/u', $class_name, $matches)) {
+        return $matches[1] . '_' . $matches[2];
+    }
+
+    if (in_array($class_name, flz_ags_default_grades(), true)) {
+        return $class_name;
+    }
+
+    return '';
+}
+
+function flz_ags_class_label(string $class_name): string
+{
+    $class_name = flz_ags_normalize_class_name($class_name);
+
+    return $class_name;
+}
+
+function flz_ags_class_options(): array
+{
+    $options = array();
+
+    foreach (flz_ags_get_classes() as $class_name) {
+        $options[$class_name] = flz_ags_class_label($class_name);
+    }
+
+    return $options;
+}
+
+function flz_ags_allowed_grades_label(string $allowed_grades): string
+{
+    $allowed_grades = flz_ags_sanitize_allowed_grades($allowed_grades);
+    if ($allowed_grades === '') {
+        return 'alle Jahrgänge';
+    }
+
+    return implode(
+        ', ',
+        array_map(
+            'flz_ags_grade_label',
+            explode(',', $allowed_grades)
+        )
+    );
+}
+
+function flz_ags_grade_label(string $grade_key): string
+{
+    $grade_key = flz_ags_extract_grade_key($grade_key);
+
+    return $grade_key !== '' ? 'Klasse ' . $grade_key : '';
+}
+
+function flz_ags_grade_options(): array
+{
+    $options = array();
+
+    foreach (flz_ags_default_grades() as $grade_key) {
+        $options[$grade_key] = flz_ags_grade_label($grade_key);
+    }
+
+    return $options;
 }
 
 function flz_ags_extract_grade_key(string $class_name): string
 {
-    $class_name = trim($class_name);
+    $class_name = strtoupper(trim(str_replace("\xc2\xa0", ' ', $class_name)));
 
-    if (preg_match('/^WKK/i', $class_name)) {
-        return 'WKK';
+    if (preg_match('/(?:^|\b)KLASSE\s*(7|8|9|10|11|12)\b/', $class_name, $matches)) {
+        return $matches[1];
     }
 
-    if (preg_match('/^(\d{1,2})(?:[._]|$)/', $class_name, $matches)) {
+    if (preg_match('/^(7|8|9|10|11|12)(?=\D|$)/', $class_name, $matches)) {
         return (string) (int) $matches[1];
     }
 
@@ -164,7 +246,7 @@ function flz_ags_extract_grade_key(string $class_name): string
 
 function flz_ags_is_valid_class(string $class_name): bool
 {
-    return in_array($class_name, flz_ags_get_classes(), true);
+    return in_array(flz_ags_normalize_class_name($class_name), flz_ags_get_classes(), true);
 }
 
 function flz_ags_sanitize_allowed_grades($value): string
@@ -181,8 +263,9 @@ function flz_ags_sanitize_allowed_grades($value): string
         if ($item === '') {
             continue;
         }
-        if (in_array($item, array('7', '8', '9', '10', '11', '12', 'WKK'), true)) {
-            $allowed[] = $item;
+        $grade_key = flz_ags_extract_grade_key($item);
+        if (in_array($grade_key, flz_ags_default_grades(), true)) {
+            $allowed[] = $grade_key;
         }
     }
 
@@ -197,13 +280,13 @@ function flz_ags_grade_is_allowed(string $class_name, string $allowed_grades, bo
         return false;
     }
 
-    $allowed_grades = trim($allowed_grades);
+    $allowed_grades = flz_ags_sanitize_allowed_grades($allowed_grades);
     if ($allowed_grades === '') {
         return true;
     }
 
-    $allowed = array_map('trim', explode(',', strtoupper($allowed_grades)));
-    return in_array(strtoupper($grade_key), $allowed, true);
+    $allowed = array_map('trim', explode(',', $allowed_grades));
+    return in_array($grade_key, $allowed, true);
 }
 
 function flz_ags_weekdays(): array
@@ -278,134 +361,349 @@ function flz_ags_course_image_url($image_url): string
         return esc_url($image_url);
     }
 
-    return esc_url(FLZ_AGS_URL . 'assets/img/demo/default.svg');
+    return esc_url(FLZ_AGS_URL . 'assets/img/default-course.svg');
+}
+
+/**
+ * Ermittelt die WordPress-Seite, die als öffentliche AG-Detailseite dient.
+ */
+function flz_ags_course_detail_page_id(object $course): int
+{
+    $detail_page_id = isset($course->detail_page_id) ? absint($course->detail_page_id) : 0;
+    if ($detail_page_id > 0 && get_post_type($detail_page_id) === 'page') {
+        return $detail_page_id;
+    }
+
+    return 0;
+}
+
+/**
+ * Liefert die öffentliche URL zur Detailseite einer AG.
+ */
+function flz_ags_course_detail_url(object $course): string
+{
+    $detail_page_id = flz_ags_course_detail_page_id($course);
+    if ($detail_page_id <= 0) {
+        return '';
+    }
+
+    $permalink = get_permalink($detail_page_id);
+    return is_string($permalink) ? $permalink : '';
+}
+
+/**
+ * Liefert die explizit eingestellte AG-Hauptseite.
+ */
+function flz_ags_configured_detail_parent_page_id(): int
+{
+    $page_id = absint(get_option('flz_ags_parent_page_id', 0));
+    if ($page_id <= 0) {
+        return 0;
+    }
+
+    $page = get_post($page_id);
+    if (!$page instanceof WP_Post || $page->post_type !== 'page' || in_array($page->post_status, array('trash', 'auto-draft'), true)) {
+        return 0;
+    }
+
+    return $page_id;
+}
+
+/**
+ * Sucht die Sammelseite „AGs“, falls noch keine Seite explizit eingestellt ist.
+ */
+function flz_ags_detect_detail_parent_page_id(): int
+{
+    foreach (array('unser-angebot/ags', 'ags') as $path) {
+        $page = get_page_by_path($path, OBJECT, 'page');
+        if ($page instanceof WP_Post) {
+            return (int) $page->ID;
+        }
+    }
+
+    $pages = get_posts(array(
+        'post_type'      => 'page',
+        'post_status'    => array('publish', 'draft', 'pending', 'private'),
+        'posts_per_page' => 20,
+        's'              => 'AGs',
+    ));
+    foreach ($pages as $page) {
+        if (!$page instanceof WP_Post) {
+            continue;
+        }
+        if (in_array($page->post_title, array('AGs', 'Arbeitsgemeinschaften'), true)) {
+            return (int) $page->ID;
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * Liefert die AG-Hauptseite, unter der Detailseiten angelegt und Demo-Seiten gelesen werden.
+ */
+function flz_ags_detail_parent_page_id(): int
+{
+    $configured_page_id = flz_ags_configured_detail_parent_page_id();
+    if ($configured_page_id > 0) {
+        return $configured_page_id;
+    }
+
+    return flz_ags_detect_detail_parent_page_id();
+}
+
+function flz_ags_page_status_label(string $status): string
+{
+    $labels = array(
+        'publish' => 'veröffentlicht',
+        'draft' => 'Entwurf',
+        'pending' => 'ausstehend',
+        'private' => 'privat',
+        'future' => 'geplant',
+    );
+
+    return $labels[$status] ?? $status;
+}
+
+/**
+ * Kompakte, im Backend gut lesbare Beschriftung für eine WordPress-Seite.
+ */
+function flz_ags_page_label(int $page_id): string
+{
+    $page = get_post($page_id);
+    if (!$page instanceof WP_Post || $page->post_type !== 'page') {
+        return 'Seite #' . $page_id;
+    }
+
+    $parts = array();
+    $ancestors = array_reverse(get_post_ancestors($page_id));
+    foreach ($ancestors as $ancestor_id) {
+        $parts[] = get_the_title((int) $ancestor_id);
+    }
+    $parts[] = get_the_title($page_id);
+
+    $path = implode(' › ', array_filter($parts));
+    return $path . ' (' . flz_ags_page_status_label($page->post_status) . ')';
 }
 
 function flz_ags_demo_courses(): array
 {
-    $base = FLZ_AGS_URL . 'assets/img/demo/';
+    $courses = array();
+    foreach (flz_ags_demo_source_pages() as $index => $page) {
+        $course = flz_ags_demo_course_from_page($page, $index);
+        if (!empty($course)) {
+            $courses[] = $course;
+        }
+    }
+
+    return $courses;
+}
+
+/**
+ * Liefert die vorhandenen AG-Seiten aus dem WordPress-Seitenbaum.
+ *
+ * Demo-Daten werden bewusst nicht mehr als harte Liste gepflegt. Die AG-Seiten
+ * sind die fachliche Quelle; fehlen dort Zeiten, werden keine künstlichen
+ * Demo-Slots erfunden.
+ */
+function flz_ags_demo_source_pages(): array
+{
+    $parent_id = flz_ags_detail_parent_page_id();
+    if ($parent_id <= 0) {
+        return array();
+    }
+
+    $pages = get_posts(array(
+        'post_type'      => 'page',
+        'post_status'    => 'publish',
+        'post_parent'    => $parent_id,
+        'posts_per_page' => -1,
+        'orderby'        => 'menu_order title',
+        'order'          => 'ASC',
+    ));
+
+    return array_values(array_filter($pages, static function ($page): bool {
+        return $page instanceof WP_Post;
+    }));
+}
+
+function flz_ags_demo_course_from_page(WP_Post $page, int $index): array
+{
+    $plain = flz_ags_page_plain_text((string) $page->post_content);
+    $description = flz_ags_extract_labeled_value($plain, 'Beschreibung');
+    if ($description === '') {
+        $description = wp_trim_words($plain, 55, ' …');
+    }
+
+    $focus = flz_ags_extract_labeled_value($plain, 'Das soll dabei im Fokus stehen');
+    $excerpt = trim(wp_strip_all_tags((string) $page->post_excerpt));
+    $short_description = $excerpt !== '' ? $excerpt : $focus;
+    if ($short_description === '') {
+        $short_description = wp_trim_words($description, 24, ' …');
+    }
+
+    $allowed_grades = flz_ags_allowed_grades_from_demo_text(
+        flz_ags_extract_labeled_value($plain, 'Jahrgang')
+    );
 
     return array(
-        array(
-            'title' => 'Aquaristik AG',
-            'short_description' => 'Pflege und Wartung der Aquarien und deren Bewohner.',
-            'description' => 'Wöchentliche Pflege der Aquarien, Wasserwechsel, Pflanzenpflege und Wasseranalysen. Demo-Datensatz aus der bestehenden AG-Darstellung.',
-            'category' => 'Naturwissenschaften',
-            'leader_name' => 'Thomas Grabowski',
-            'allowed_grades' => '7,8,9,10,11,12',
-            'only_grade_7' => 0,
-            'image_url' => $base . 'aquaristik.svg',
-            'info_url' => 'https://tagore-gymnasium.de/unser-angebot/ags/ag-indien-7/',
-            'sort_order' => 10,
-            'slots' => array(
-                array('weekday' => 3, 'start_time' => '15:30', 'end_time' => '17:00', 'room' => 'Mensa', 'max_participants' => 9),
-            ),
-        ),
-        array(
-            'title' => 'Basketball AG',
-            'short_description' => 'Spaß am Basketballspiel für Neulinge und Fortgeschrittene.',
-            'description' => 'Basketball nach dem Unterricht, Technik, Spielpraxis und ggf. Aufbau eines Schulteams. Demo-Datensatz aus der bestehenden AG-Darstellung.',
-            'category' => 'Sport',
-            'leader_name' => 'Samer Korsus / Kevin Do',
-            'allowed_grades' => '7,8,9,10,11,12',
-            'only_grade_7' => 0,
-            'image_url' => $base . 'basketball.svg',
-            'info_url' => 'https://tagore-gymnasium.de/unser-angebot/ags/basketball-ag/',
-            'sort_order' => 20,
-            'slots' => array(
-                array('weekday' => 4, 'start_time' => '13:40', 'end_time' => '15:10', 'room' => 'TH-D', 'max_participants' => 20),
-            ),
-        ),
-        array(
-            'title' => 'Bollywood-AG',
-            'short_description' => 'Indische Kultur kreativ erleben: Tanz, Theater, Kochen und Feste.',
-            'description' => 'Die AG verbindet Tradition und Moderne und macht Indien über kreative Formate erlebbar. Demo-Datensatz aus der bestehenden AG-Darstellung.',
-            'category' => 'Kultur',
-            'leader_name' => 'Alisha Chauhan',
-            'allowed_grades' => '10,11,12',
-            'only_grade_7' => 0,
-            'image_url' => $base . 'bollywood.svg',
-            'info_url' => 'https://tagore-gymnasium.de/unser-angebot/ags/bollywood/',
-            'sort_order' => 30,
-            'slots' => array(
-                array('weekday' => 4, 'start_time' => '13:40', 'end_time' => '15:10', 'room' => '1405', 'max_participants' => 12),
-            ),
-        ),
-        array(
-            'title' => 'Instrumental AG',
-            'short_description' => 'Instrumente spielen, singen und musikalische Fähigkeiten entwickeln.',
-            'description' => 'Erarbeitung eines Repertoires und Verbesserung des Zusammenspiels. Demo-Datensatz aus der bestehenden AG-Darstellung.',
-            'category' => 'Musik',
-            'leader_name' => 'Frau Große / Frau Preidel',
-            'allowed_grades' => '7',
-            'only_grade_7' => 1,
-            'image_url' => $base . 'instrumental.svg',
-            'info_url' => 'https://tagore-gymnasium.de/unser-angebot/ags/instrumental-ag/',
-            'sort_order' => 40,
-            'slots' => array(
-                array('weekday' => 3, 'start_time' => '13:40', 'end_time' => '14:40', 'room' => '2006', 'max_participants' => 20),
-            ),
-        ),
-        array(
-            'title' => 'Hausaufgabenhilfe',
-            'short_description' => 'Unterstützung beim Lernen, Üben und Organisieren von Aufgaben.',
-            'description' => 'Demo-Datensatz nach vorhandener AG-Übersicht. Zeiten und Raum bitte vor Produktivbetrieb prüfen.',
-            'category' => 'Lernförderung',
-            'leader_name' => 'Tagore-Gymnasium',
-            'allowed_grades' => '7,8,9,10',
-            'only_grade_7' => 0,
-            'image_url' => $base . 'hausaufgabenhilfe.svg',
-            'info_url' => 'https://tagore-gymnasium.de/unser-angebot/ags/hausaufgabenhilfe/',
-            'sort_order' => 50,
-            'slots' => array(
-                array('weekday' => 2, 'start_time' => '14:30', 'end_time' => '15:30', 'room' => 'Lernraum', 'max_participants' => 16),
-                array('weekday' => 4, 'start_time' => '14:30', 'end_time' => '15:30', 'room' => 'Lernraum', 'max_participants' => 16),
-            ),
-        ),
-        array(
-            'title' => 'Gesundes Kochen',
-            'short_description' => 'Gemeinsam einfache, gesunde Gerichte planen und zubereiten.',
-            'description' => 'Demo-Datensatz nach vorhandener AG-Übersicht. Zeiten und Raum bitte vor Produktivbetrieb prüfen.',
-            'category' => 'Gesundheit / Kochen',
-            'leader_name' => 'Tagore-Gymnasium',
-            'allowed_grades' => '7,8,9,10,11,12',
-            'only_grade_7' => 0,
-            'image_url' => $base . 'kochen.svg',
-            'info_url' => 'https://tagore-gymnasium.de/unser-angebot/ags/gesundes-kochen/',
-            'sort_order' => 60,
-            'slots' => array(
-                array('weekday' => 2, 'start_time' => '14:30', 'end_time' => '16:00', 'room' => 'Lehrküche', 'max_participants' => 12),
-            ),
-        ),
-        array(
-            'title' => 'Line Dance',
-            'short_description' => 'Tanzen in der Gruppe mit festen Schrittfolgen und Musik.',
-            'description' => 'Demo-Datensatz nach vorhandener AG-Übersicht. Zeiten und Raum bitte vor Produktivbetrieb prüfen.',
-            'category' => 'Tanz / Sport',
-            'leader_name' => 'Tagore-Gymnasium',
-            'allowed_grades' => '7,8,9,10,11,12',
-            'only_grade_7' => 0,
-            'image_url' => $base . 'dance.svg',
-            'info_url' => 'https://tagore-gymnasium.de/unser-angebot/ags/line-dance/',
-            'sort_order' => 70,
-            'slots' => array(
-                array('weekday' => 3, 'start_time' => '14:30', 'end_time' => '15:30', 'room' => 'Aula', 'max_participants' => 18),
-            ),
-        ),
-        array(
-            'title' => 'Robo Cup-AG',
-            'short_description' => 'Robotik, Konstruktion und Programmierung im Team.',
-            'description' => 'Demo-Datensatz nach vorhandener AG-Übersicht. Zeiten und Raum bitte vor Produktivbetrieb prüfen.',
-            'category' => 'Informatik / Technik',
-            'leader_name' => 'Tagore-Gymnasium',
-            'allowed_grades' => '7,8,9,10,11,12',
-            'only_grade_7' => 0,
-            'image_url' => $base . 'robotik.svg',
-            'info_url' => 'https://tagore-gymnasium.de/unser-angebot/ags/robo-cup-ag/',
-            'sort_order' => 80,
-            'slots' => array(
-                array('weekday' => 1, 'start_time' => '14:30', 'end_time' => '16:00', 'room' => 'Computerraum', 'max_participants' => 12),
-            ),
-        ),
+        'title' => sanitize_text_field(get_the_title($page)),
+        'short_description' => sanitize_textarea_field($short_description),
+        'description' => sanitize_textarea_field($description),
+        'category' => '',
+        'leader_name' => sanitize_text_field(flz_ags_demo_leader_from_page($page)),
+        'allowed_grades' => $allowed_grades,
+        'only_grade_7' => $allowed_grades === '7' ? 1 : 0,
+        'image_url' => esc_url_raw(flz_ags_page_image_url((int) $page->ID, (string) $page->post_content)),
+        'detail_page_id' => (int) $page->ID,
+        'sort_order' => ($index + 1) * 10,
+        'slots' => flz_ags_demo_slots_from_page_text($plain),
     );
+}
+
+function flz_ags_page_plain_text(string $content): string
+{
+    $content = str_replace(array('</td>', '</tr>', '</p>', '<br>', '<br/>', '<br />'), ' ', $content);
+    $plain = wp_strip_all_tags($content);
+    $plain = html_entity_decode($plain, ENT_QUOTES | ENT_HTML5, get_bloginfo('charset') ?: 'UTF-8');
+    $plain = str_replace("\xc2\xa0", ' ', $plain);
+
+    return trim((string) preg_replace('/\s+/u', ' ', $plain));
+}
+
+function flz_ags_extract_labeled_value(string $plain, string $label): string
+{
+    $labels = array(
+        'Das soll dabei im Fokus stehen',
+        'Ziel',
+        'Beschreibung',
+        'Ort',
+        'Raum',
+        'Anforderungen / Niveau',
+        'Rhythmus',
+        'Zeit',
+        'Dauer',
+        'Jahrgang',
+        'Anzahl Teilnehmende',
+        'Teilnahme',
+    );
+    $quoted = array_map(static function (string $item): string {
+        return preg_quote($item, '/');
+    }, $labels);
+
+    $pattern = '/(?:^|\s)' . preg_quote($label, '/') . '\s*:\s*(.*?)(?=\s+(?:' . implode('|', $quoted) . ')\s*:|$)/ui';
+    if (!preg_match($pattern, $plain, $matches)) {
+        return '';
+    }
+
+    return trim((string) $matches[1]);
+}
+
+function flz_ags_demo_leader_from_page(WP_Post $page): string
+{
+    $leader = flz_ags_extract_labeled_value(flz_ags_page_plain_text((string) $page->post_content), 'Leitung');
+    if ($leader !== '') {
+        return $leader;
+    }
+
+    if (preg_match('/<tr[^>]*>\s*<td[^>]*>(.*?)<\/td>/is', (string) $page->post_content, $matches)) {
+        $leader = trim(wp_strip_all_tags((string) $matches[1]));
+        $leader = (string) preg_replace('/\s+/u', ' ', html_entity_decode($leader, ENT_QUOTES | ENT_HTML5, get_bloginfo('charset') ?: 'UTF-8'));
+        if ($leader !== '' && stripos($leader, get_the_title($page)) === false) {
+            return $leader;
+        }
+    }
+
+    return '';
+}
+
+function flz_ags_page_image_url(int $page_id, string $content): string
+{
+    $thumbnail = get_the_post_thumbnail_url($page_id, 'medium_large');
+    if (is_string($thumbnail) && $thumbnail !== '') {
+        return $thumbnail;
+    }
+
+    if (preg_match('/<img[^>]+src=["\']([^"\']+)["\']/i', $content, $matches)) {
+        return (string) $matches[1];
+    }
+
+    return '';
+}
+
+function flz_ags_allowed_grades_from_demo_text(string $value): string
+{
+    $value = strtoupper(str_replace(array('–', '—'), '-', $value));
+    $grades = array();
+
+    if (preg_match('/\b(7|8|9|10|11|12)\s*-\s*(7|8|9|10|11|12)\b/', $value, $range)) {
+        $start = (int) $range[1];
+        $end = (int) $range[2];
+        if ($start <= $end) {
+            for ($grade = $start; $grade <= $end; $grade++) {
+                $grades[] = (string) $grade;
+            }
+        }
+    }
+
+    if (preg_match_all('/\b(?:7|8|9|10|11|12)\b/', $value, $matches)) {
+        $grades = array_merge($grades, $matches[0]);
+    }
+
+    return flz_ags_sanitize_allowed_grades($grades);
+}
+
+function flz_ags_demo_slots_from_page_text(string $plain): array
+{
+    $time_text = flz_ags_extract_labeled_value($plain, 'Zeit');
+    if ($time_text === '') {
+        $time_text = $plain;
+    }
+
+    $pattern = '/(Montag|Dienstag|Mittwoch|Donnerstag|Freitag|Samstag|Sonntag)\s+(\d{1,2})[:.](\d{2})\s*(?:–|—|-|bis)\s*(\d{1,2})[:.](\d{2})/ui';
+    if (!preg_match_all($pattern, $time_text, $matches, PREG_SET_ORDER)) {
+        return array();
+    }
+
+    $slots = array();
+    $room = sanitize_text_field(flz_ags_extract_labeled_value($plain, 'Raum'));
+    $max_participants = flz_ags_demo_max_participants($plain);
+    foreach ($matches as $match) {
+        $weekday = flz_ags_weekday_from_label((string) $match[1]);
+        if ($weekday <= 0) {
+            continue;
+        }
+
+        $slots[] = array(
+            'weekday' => $weekday,
+            'start_time' => sprintf('%02d:%02d', (int) $match[2], (int) $match[3]),
+            'end_time' => sprintf('%02d:%02d', (int) $match[4], (int) $match[5]),
+            'room' => $room,
+            'max_participants' => $max_participants,
+        );
+    }
+
+    return $slots;
+}
+
+function flz_ags_weekday_from_label(string $label): int
+{
+    $label = strtolower($label);
+    foreach (flz_ags_weekdays() as $weekday => $weekday_label) {
+        if ($label === strtolower($weekday_label)) {
+            return (int) $weekday;
+        }
+    }
+
+    return 0;
+}
+
+function flz_ags_demo_max_participants(string $plain): int
+{
+    $value = flz_ags_extract_labeled_value($plain, 'Anzahl Teilnehmende');
+    if ($value === '' || !preg_match_all('/\d+/', $value, $matches)) {
+        return 0;
+    }
+
+    return max(array_map('intval', $matches[0]));
 }
