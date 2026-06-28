@@ -6,6 +6,7 @@ if ( PHP_SAPI !== 'cli' ) {
 }
 
 define( 'ABSPATH', '/tmp/' );
+define( 'OBJECT', 'OBJECT' );
 
 // Test-Exceptions werden ausschließlich von der CLI ausgewertet.
 // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped
@@ -66,7 +67,7 @@ final class FlzWpdbObjectsFakeWpdb {
 		return $this->outcome( 'prepare', $query );
 	}
 
-	public function get_results( string $query ) {
+	public function get_results( string $query, string $output = OBJECT ) {
 		return $this->outcome( 'get_results', $this->results );
 	}
 
@@ -138,6 +139,7 @@ class FlzWpdbObjectsTestRelation extends FlzWpdbObject {
 
 class FlzWpdbObjectsTestRecord extends FlzWpdbObject {
 	public static bool $fail_after_insert = false;
+	public static int $last_insert_id_seen = 0;
 	public string|null $name = null;
 	public FlzWpdbObjectsTestRelation|null $relation = null;
 
@@ -159,16 +161,25 @@ class FlzWpdbObjectsTestRecord extends FlzWpdbObject {
 		if ( self::$fail_after_insert ) {
 			throw new RuntimeException( 'Hook absichtlich fehlgeschlagen.' );
 		}
+		self::$last_insert_id_seen = static::last_insert_id();
 	}
 
 	public static function hydrate( object $row ): object {
 		return static::createObjectFromResult( $row );
 	}
+
+	public static function custom_query_for_test(): array {
+		return static::query_models(
+			'SELECT * FROM ' . static::table_name() . ' WHERE name = %s',
+			[ 'Custom' ],
+			'Laden per Custom-Query'
+		);
+	}
 }
 
-class FlzWpdbObjectsCsvFailure {
-	public function getCsvLine(): string {
-		throw new RuntimeException( 'CSV-Zeile absichtlich fehlgeschlagen.' );
+class FlzWpdbObjectsSnakeCaseRecord extends FlzWpdbObject {
+	public static function table_name_for_test(): string {
+		return static::table_name();
 	}
 }
 
@@ -212,12 +223,22 @@ $records = FlzWpdbObjectsTestRecord::get_all_by();
 flz_test_check( count( $records ) === 1 && $records[0]->name === 'Erfolg', 'Erfolgreiches Laden fehlgeschlagen.' );
 $record = new FlzWpdbObjectsTestRecord( [ 'name' => 'Erfolg' ] );
 flz_test_check( $record->save() === 1 && $record->id === 41, 'Erfolgreiches INSERT fehlgeschlagen.' );
+flz_test_check( FlzWpdbObjectsTestRecord::$last_insert_id_seen === 41, 'Zentrale Insert-ID für afterInsert-Hooks fehlt.' );
 flz_test_check( $record->save() === 1, 'Erfolgreiches UPDATE fehlgeschlagen.' );
 flz_test_check( $record->delete() === 1, 'Erfolgreiches DELETE fehlgeschlagen.' );
 $wpdb->count = 3;
 flz_test_check( FlzWpdbObjectsTestRecord::count_by() === 3, 'Erfolgreiches COUNT fehlgeschlagen.' );
 $dauer = ( new FlzZeitraum( [ 'beginn' => 0, 'ende' => 90061 ] ) )->dauer();
 flz_test_check( $dauer['Tage'] === 1 && $dauer['Stunden'] === 1, 'Erfolgreiche Dauerberechnung fehlgeschlagen.' );
+flz_test_check(
+	FlzWpdbObjectsSnakeCaseRecord::table_name_for_test() === 'wp_flz_wpdb_objects_snake_case_records',
+	'Snake-Case-Tabellenname wurde falsch abgeleitet.'
+);
+
+$wpdb->reset();
+$wpdb->results = [ (object) [ 'id' => 1, 'name' => 'Custom' ] ];
+$records = FlzWpdbObjectsTestRecord::custom_query_for_test();
+flz_test_check( count( $records ) === 1 && $records[0]->name === 'Custom', 'Custom-Query-Hydrierung fehlgeschlagen.' );
 
 $wpdb->reset();
 $transaction_result = FlzWpdbTransaction::run( static fn() => 17, 'Erfolgreicher Testvorgang' );
@@ -390,7 +411,7 @@ $GLOBALS['flz_test_upload_dir'] = [
 	'error'   => 'Simulierter Uploadfehler',
 ];
 flz_test_expect_exception(
-	static fn() => flz_wpdb_objects_create_csv( [], 'test.csv' ),
+	static fn() => flz_wpdb_objects_create_csv_file( [], [], 'test.csv' ),
 	FlzWpdbObjectsException::class,
 	[ 'Uploadverzeichnisses', 'Simulierter Uploadfehler' ]
 );
@@ -403,10 +424,9 @@ $GLOBALS['flz_test_upload_dir'] = [
 	'error'   => false,
 ];
 flz_test_expect_exception(
-	static fn() => flz_wpdb_objects_create_csv( [ new FlzWpdbObjectsCsvFailure() ], $filename ),
-	FlzWpdbObjectsException::class,
-	[ 'CSV-Zeile mit Index 0', 'absichtlich fehlgeschlagen' ],
-	true
+	static fn() => flz_wpdb_objects_create_csv_file( [], [ 'keine-array-zeile' ], $filename ),
+	InvalidArgumentException::class,
+	[ 'CSV-Zeile mit Index "0"', 'Array' ]
 );
 if ( is_file( $path ) ) {
 	unlink( $path );
@@ -414,7 +434,7 @@ if ( is_file( $path ) ) {
 
 $filename = 'flz-wpdb-success-test-' . getmypid() . '.csv';
 $path = '/tmp/' . $filename;
-$url = flz_wpdb_objects_create_csv( [ new FlzWpdbObjectsTestRecord( [ 'name' => 'CSV' ] ) ], $filename, "Kopf\n" );
+$url = flz_wpdb_objects_create_csv_file( [ 'Kopf' ], [ [ 'CSV' ] ], $filename );
 flz_test_check( is_file( $path ), 'Erfolgreicher CSV-Export hat keine Datei erzeugt.' );
 flz_test_check( $url === 'https://example.test/uploads/' . $filename, 'CSV-URL ist unerwartet.' );
 if ( is_file( $path ) ) {

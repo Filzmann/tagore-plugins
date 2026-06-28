@@ -93,6 +93,13 @@ Technische Fehlerketten eigener Plugins sollen zentral über
 Sichtbare Fehlermeldungen bleiben Aufgabe des jeweiligen Fachplugins und müssen
 sicher, knapp und ohne interne Details formuliert sein.
 
+Fachplugins sollen Controller-/Service-Logik, Datenmodelle und Templates klar
+trennen. Größere HTML-Blöcke gehören in `templates/`, Backend-spezifische
+Koordination in `backend/`, Frontend-spezifische Koordination in `frontend/`.
+Wiederkehrende UI-, CSV-, Tabellen-, Formular- oder Datenbankmuster sind zuerst
+auf Wiederverwendbarkeit in `flz_ui_components` bzw. `flz_wpdb_objects` zu
+prüfen, statt sie erneut im Fachplugin zu duplizieren.
+
 ## Arbeitsweise
 
 Vor jeder größeren Änderung:

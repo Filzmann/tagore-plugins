@@ -1,4 +1,4 @@
-# FLZ UI Components 0.1.10
+# FLZ UI Components 0.1.11
 
 `flz_ui_components` stellt gemeinsame UI-Bausteine für die eigenen Tagore-Plugins bereit. Das Plugin ist bewusst klein gehalten: normale PHP-Templates bleiben normale PHP-Templates, bekommen aber zentrale Renderer, einheitliche Klassen, gemeinsame Formularvalidierung und wiederverwendbare Assets.
 
@@ -86,6 +86,17 @@ echo flz_ui()->admin_table_sort_link(
 Die Fachplugins bleiben für Sanitizing, erlaubte Sortierschlüssel und die
 eigentliche Datenfilterung zuständig. Das UI-Plugin kümmert sich nur um
 konsistentes Markup, Umschaltlogik und Escaping.
+
+Für die wiederkehrenden Query-Parameter stehen kleine Admin-Helper bereit:
+
+```php
+$orderby = flz_ui_admin_orderby(array('name', 'created_at'), 'name');
+$order   = flz_ui_admin_order();
+$filter  = flz_ui_admin_filter_text('search');
+```
+
+`flz_ui_admin_compare()` kapselt den stabilen Vergleich für in PHP sortierte
+Admin-Tabellen.
 
 Filterformulare in Tabellenköpfen nutzen die Klasse
 `.flz-ui-table-filter-form`. Das gemeinsame UI-Script sendet solche GET-Filter

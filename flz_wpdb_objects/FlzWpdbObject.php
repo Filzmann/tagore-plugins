@@ -313,10 +313,78 @@ class FlzWpdbObject {
 		return $relation_class;
 	}
 
+	/**
+	 * Führt eine fachlich aufgebaute, vorbereitete Leseabfrage aus.
+	 *
+	 * Diese Methode ist für die wenigen Fälle gedacht, in denen ein Modell mehr
+	 * braucht als einfache Gleichheitsabfragen, z. B. kontrollierte JOINs oder
+	 * fachliche Sortierungen. SQL-Fragmente dürfen weiterhin nur aus dem Modell
+	 * stammen; Nutzwerte werden ausschließlich über Platzhalter übergeben.
+	 *
+	 * @throws FlzWpdbObjectsException Bei Datenbank- oder Vorbereitungsfehlern.
+	 */
+	protected static function query_rows(
+		string $sql,
+		array $values,
+		string $operation,
+		string $output = OBJECT
+	): array {
+		global $wpdb;
+
+		$table = static::validated_identifier( static::table_name() );
+		$query = empty( $values )
+			? $sql
+			: static::prepare_query( $sql, $values, 'Vorbereiten der Datenbankabfrage', $table );
+
+		try {
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query wurde fachlich kontrolliert aufgebaut und vorbereitet.
+			$rows = $wpdb->get_results( $query, $output );
+		} catch ( Throwable $error ) {
+			throw FlzWpdbObjectsException::operation( $operation, 'Tabelle ' . $table, $error );
+		}
+
+		if ( ! is_array( $rows ) || static::has_database_error() ) {
+			throw static::database_exception( $operation, $table );
+		}
+
+		return $rows;
+	}
+
+	/**
+	 * Führt eine Custom-Leseabfrage aus und hydriert Ergebniszeilen als Modell.
+	 *
+	 * @throws FlzWpdbObjectsException Bei Datenbank- oder Hydrierungsfehlern.
+	 */
+	protected static function query_models( string $sql, array $values, string $operation ): array {
+		$models = [];
+		foreach ( static::query_rows( $sql, $values, $operation ) as $row ) {
+			if ( ! is_object( $row ) ) {
+				throw FlzWpdbObjectsException::invalid_model_state(
+					static::class,
+					'Eine Datenbankzeile besitzt nicht das erwartete Objektformat.'
+				);
+			}
+			$models[] = static::createObjectFromResult( $row );
+		}
+
+		return $models;
+	}
+
 	protected static function table_name(): string {
 		global $wpdb;
 
-		return $wpdb->prefix . strtolower( get_called_class() ) . 's';
+		return $wpdb->prefix . static::class_to_table_base( get_called_class() ) . 's';
+	}
+
+	private static function class_to_table_base( string $class_name ): string {
+		$parts = explode( '\\', $class_name );
+		$short_name = (string) end( $parts );
+		$snake = preg_replace( '/(?<=[a-z0-9])(?=[A-Z])/', '_', $short_name );
+		$snake = preg_replace( '/(?<=[A-Z])(?=[A-Z][a-z])/', '_', (string) $snake );
+		$snake = strtolower( (string) $snake );
+		$snake = preg_replace( '/_+/', '_', $snake );
+
+		return trim( (string) $snake, '_' );
 	}
 
 	private static function validated_identifier( string $identifier ): string {
@@ -524,6 +592,30 @@ class FlzWpdbObject {
 		return [];
 	}
 
+	/**
+	 * Liefert die letzte Insert-ID für historische statische afterInsert-Hooks.
+	 *
+	 * Neue Fachlogik sollte bevorzugt mit der Objekt-ID nach save() arbeiten.
+	 * Für bestehende statische Hooks bleibt der direkte Zugriff auf $wpdb aber
+	 * hier zentral geprüft und mit einer aussagekräftigen Modell-Exception
+	 * gekapselt.
+	 *
+	 * @throws FlzWpdbObjectsException Wenn WordPress keine positive Insert-ID liefert.
+	 */
+	protected static function last_insert_id(): int {
+		global $wpdb;
+
+		$insert_id = (int) $wpdb->insert_id;
+		if ( $insert_id <= 0 ) {
+			throw FlzWpdbObjectsException::invalid_model_state(
+				static::class,
+				'Nach dem Einfügen des Datensatzes liegt keine positive Insert-ID vor.'
+			);
+		}
+
+		return $insert_id;
+	}
+
 
 	/**
 	 * Löscht das Modell anhand seiner positiven ID.
@@ -715,46 +807,6 @@ class FlzWpdbObject {
 
 	protected static function afterDelete(): void {
 		// Historischer Hook nach dem Löschen einer Zeile oder Tabelle.
-	}
-
-	/**
-	 * Serialisiert öffentliche Properties in die historische CSV-Zeilenform.
-	 *
-	 * @throws FlzWpdbObjectsException Bei nicht serialisierbaren Properties.
-	 */
-	public function getCsvLine(): string {
-		$values    = [];
-		$classVars = get_object_vars( $this );
-
-		foreach ( $classVars as $property_name => $value ) {
-			if ( is_object( $value ) ) {
-				if ( ! method_exists( $value, 'getCsvLine' ) ) {
-					throw FlzWpdbObjectsException::invalid_model_state(
-						static::class,
-						'Die Property $' . $property_name . ' enthält ein Objekt ohne getCsvLine()-Methode.'
-					);
-				}
-				try {
-					$value = $value->getCsvLine();
-				} catch ( Throwable $error ) {
-					throw FlzWpdbObjectsException::operation(
-						'Erzeugen des CSV-Werts für Property $' . $property_name,
-						static::class,
-						$error
-					);
-				}
-			}
-			if ( is_array( $value ) || is_resource( $value ) ) {
-				throw FlzWpdbObjectsException::invalid_model_state(
-					static::class,
-					'Die Property $' . $property_name . ' kann nicht als CSV-Wert serialisiert werden.'
-				);
-			}
-
-			$values[] = $value === null ? '' : (string) $value;
-		}
-
-		return implode( ';', $values );
 	}
 
 	/**

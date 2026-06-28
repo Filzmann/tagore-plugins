@@ -3,7 +3,7 @@
 Plugin Name: FLZ WPDB Objects
 Plugin URI: Deine Plugin-URI
 Description: Stellt WordPress-Datenbankfunktionen als einfache CRUD-Modelle zur Verfügung
-Version: 1.3.0
+Version: 1.4.0
 Author: Filzmann
 Author URI: Deine Autor-URI
 License: GPLv2 or later
@@ -204,25 +204,33 @@ function flz_wpdb_objects_read_uploaded_csv(
 	return $rows;
 }
 
-/**
- * Schreibt Modellobjekte als CSV-Datei in das WordPress-Uploadverzeichnis.
- *
- * Der Dateiname wird auf einen einfachen CSV-Basisnamen begrenzt. Die Funktion
- * erzeugt bewusst nur die Datei; Zugriffsschutz und Nonce-Prüfung gehören in
- * den aufrufenden Download-Workflow.
- *
- * @throws InvalidArgumentException                          Bei einem ungültigen Dateinamen oder Objekt.
- * @throws flz_wpdb_objects\FlzWpdbObjectsException Bei Datei- oder Modellfehlern.
- */
-function flz_wpdb_objects_create_csv(
-	array $objects,
-	string $filename = 'default.csv',
-	string $csv_head = ''
-): string {
+function flz_wpdb_objects_sanitize_csv_filename( string $filename ): string {
 	$filename = sanitize_file_name( wp_basename( $filename ) );
 	if ( $filename === '' || strtolower( pathinfo( $filename, PATHINFO_EXTENSION ) ) !== 'csv' ) {
 		throw new InvalidArgumentException( 'Der Dateiname muss auf .csv enden.' );
 	}
+
+	return $filename;
+}
+
+/**
+ * Schreibt eine arraybasierte CSV-Datei in das WordPress-Uploadverzeichnis.
+ *
+ * Nonce- und Berechtigungsprüfung bleiben Aufgabe des aufrufenden Workflows.
+ *
+ * @param array<int,mixed>            $header Kopfzeile.
+ * @param array<int,array<int,mixed>> $rows   Datenzeilen.
+ *
+ * @throws InvalidArgumentException                 Bei ungültigem Dateinamen.
+ * @throws flz_wpdb_objects\FlzWpdbObjectsException Bei Datei- oder CSV-Fehlern.
+ */
+function flz_wpdb_objects_create_csv_file(
+	array $header,
+	array $rows,
+	string $filename = 'default.csv'
+): string {
+	$filename = flz_wpdb_objects_sanitize_csv_filename( $filename );
+	$csv      = flz_wpdb_objects_build_csv_string( $header, $rows );
 
 	try {
 		$upload_dir = wp_upload_dir();
@@ -267,41 +275,14 @@ function flz_wpdb_objects_create_csv(
 
 	$pending_error = null;
 	try {
-		if ( $csv_head !== '' ) {
-			error_clear_last();
-			if ( @fwrite( $file_handle, $csv_head ) === false ) {
-				$php_error = error_get_last();
-				throw flz_wpdb_objects\FlzWpdbObjectsException::file_system(
-					'Schreiben des CSV-Kopfs',
-					$csv_file,
-					(string) ( $php_error['message'] ?? '' )
-				);
-			}
-		}
-		foreach ( $objects as $index => $object ) {
-			if ( ! is_object( $object ) || ! method_exists( $object, 'getCsvLine' ) ) {
-				throw new InvalidArgumentException(
-					'Das CSV-Element mit Index "' . (string) $index . '" muss ein Objekt mit getCsvLine() sein.'
-				);
-			}
-			try {
-				$csv_line = $object->getCsvLine();
-			} catch ( Throwable $error ) {
-				throw flz_wpdb_objects\FlzWpdbObjectsException::operation(
-					'Erzeugen der CSV-Zeile mit Index ' . (string) $index,
-					get_class( $object ),
-					$error
-				);
-			}
-			error_clear_last();
-			if ( @fwrite( $file_handle, $csv_line . "\n" ) === false ) {
-				$php_error = error_get_last();
-				throw flz_wpdb_objects\FlzWpdbObjectsException::file_system(
-					'Schreiben der CSV-Zeile mit Index ' . (string) $index,
-					$csv_file,
-					(string) ( $php_error['message'] ?? '' )
-				);
-			}
+		error_clear_last();
+		if ( @fwrite( $file_handle, $csv ) === false ) {
+			$php_error = error_get_last();
+			throw flz_wpdb_objects\FlzWpdbObjectsException::file_system(
+				'Schreiben der CSV-Datei',
+				$csv_file,
+				(string) ( $php_error['message'] ?? '' )
+			);
 		}
 	} catch ( Throwable $error ) {
 		$pending_error = $error;
@@ -330,6 +311,35 @@ function flz_wpdb_objects_create_csv(
 	}
 
 	return $csv_url;
+}
+
+/**
+ * Sendet eine CSV-Datei direkt als kontrollierten Download.
+ *
+ * Diese Funktion beendet den Request absichtlich mit exit. Aufrufer müssen
+ * vorher Berechtigungen und Nonces geprüft haben.
+ *
+ * @param array<int,mixed>            $header Kopfzeile.
+ * @param array<int,array<int,mixed>> $rows   Datenzeilen.
+ *
+ * @throws InvalidArgumentException                 Bei ungültigem Dateinamen.
+ * @throws flz_wpdb_objects\FlzWpdbObjectsException Bei CSV-Fehlern.
+ */
+function flz_wpdb_objects_send_csv_download(
+	array $header,
+	array $rows,
+	string $filename,
+	string $delimiter = ';'
+): void {
+	$filename = flz_wpdb_objects_sanitize_csv_filename( $filename );
+	$csv      = flz_wpdb_objects_build_csv_string( $header, $rows, $delimiter );
+
+	nocache_headers();
+	header( 'Content-Type: text/csv; charset=utf-8' );
+	header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Kontrolliert erzeugte CSV-Datei, kein HTML-Kontext.
+	echo $csv;
+	exit;
 }
 
 // phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped

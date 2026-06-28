@@ -2,14 +2,14 @@
 /**
  * Plugin Name: FLZ UI Components
  * Description: Gemeinsame UI-Komponenten, Formularfelder und Validierung für eigene Tagore-Plugins.
- * Version: 0.1.10
+ * Version: 0.1.11
  * Author: Tagore-Gymnasium / Simon
  * Text Domain: flz-ui-components
  */
 
 defined('ABSPATH') || exit;
 
-define('FLZ_UI_COMPONENTS_VERSION', '0.1.10');
+define('FLZ_UI_COMPONENTS_VERSION', '0.1.11');
 define('FLZ_UI_COMPONENTS_FILE', __FILE__);
 define('FLZ_UI_COMPONENTS_DIR', plugin_dir_path(__FILE__));
 define('FLZ_UI_COMPONENTS_URL', plugins_url('flz_ui_components/'));
@@ -81,6 +81,53 @@ function flz_ui(): Flz_Ui_Components_Renderer
 function flz_ui_validate(array $input, array $schema): Flz_Ui_Components_Validation_Result
 {
     return (new Flz_Ui_Components_Validator())->validate($input, $schema);
+}
+
+/**
+ * Liest einen erlaubten Sortierschlüssel aus der Admin-URL.
+ *
+ * @param array<int,string> $allowed Erlaubte Sortierschlüssel.
+ */
+function flz_ui_admin_orderby(array $allowed, string $default): string
+{
+    $orderby = isset($_GET['orderby']) ? sanitize_key(wp_unslash($_GET['orderby'])) : $default;
+
+    return in_array($orderby, $allowed, true) ? $orderby : $default;
+}
+
+/**
+ * Liest die Sortierrichtung aus der Admin-URL.
+ */
+function flz_ui_admin_order(): string
+{
+    $order = isset($_GET['order']) ? strtolower(sanitize_key(wp_unslash($_GET['order']))) : 'asc';
+
+    return 'desc' === $order ? 'desc' : 'asc';
+}
+
+/**
+ * Liest einen kurzen Textfilter aus der Admin-URL.
+ */
+function flz_ui_admin_filter_text(string $key): string
+{
+    return isset($_GET[$key]) ? sanitize_text_field(wp_unslash($_GET[$key])) : '';
+}
+
+/**
+ * Vergleicht zwei skalare Werte stabil für Admin-Tabellen.
+ *
+ * @param int|string $left  Erster Wert.
+ * @param int|string $right Zweiter Wert.
+ */
+function flz_ui_admin_compare($left, $right, string $order): int
+{
+    if (is_numeric($left) && is_numeric($right)) {
+        $result = (int) $left <=> (int) $right;
+    } else {
+        $result = strnatcasecmp((string) $left, (string) $right);
+    }
+
+    return 'desc' === $order ? -$result : $result;
 }
 
 /**
