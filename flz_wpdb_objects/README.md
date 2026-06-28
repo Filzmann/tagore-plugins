@@ -8,6 +8,12 @@ Kontext bleibt die ursprüngliche Exception über `getPrevious()` erhalten.
 Aufrufer sollen die vollständige Kette protokollieren und an der UI-Grenze eine
 separate, escapte Meldung ohne interne Details ausgeben.
 
+Für App-Logging steht zusätzlich
+`FlzWpdbObjectsException::log_error($error, $plugin_slug, $context)` bereit.
+Damit bleibt das Logformat über alle eigenen Plugins gleich: Plugin, fachlicher
+Vorgang und vollständige Ursachekette werden gemeinsam protokolliert. Sichtbare
+Fehlermeldungen bleiben bewusst Aufgabe des jeweiligen Fachplugins.
+
 ## Transaktionen
 
 `FlzWpdbTransaction::run($callback, $operation)` führt mehrere

@@ -1,4 +1,4 @@
-# Tagore UI Components 0.1.5
+# FLZ UI Components 0.1.10
 
 `flz_ui_components` stellt gemeinsame UI-Bausteine für die eigenen Tagore-Plugins bereit. Das Plugin ist bewusst klein gehalten: normale PHP-Templates bleiben normale PHP-Templates, bekommen aber zentrale Renderer, einheitliche Klassen, gemeinsame Formularvalidierung und wiederverwendbare Assets.
 
@@ -24,9 +24,97 @@ Falls die lokale WordPress-Struktur abweicht, den Zielpfad entsprechend anpassen
 
 Im WordPress-Backend gibt es nach Aktivierung eine lebende Komponentenübersicht unter:
 
-`Werkzeuge → FLZ UI Components`
+`FLZ UI Components`
 
 Die Seite zeigt Buttons, Icon-Buttons, Notices, CSV-Panel, Field Matrix, Cards, Editable Rows, Formularfelder und die serverseitige Validierung mit Beispielwerten.
+
+## Gutenberg-Blocks für Shortcodes
+
+Frontend-Plugins können vorhandene Shortcodes als dynamische Gutenberg-Blocks
+registrieren. Das Rendering läuft weiter über den Shortcode, der Editor bekommt
+aber einen auffindbaren Block mit optionalen Inspector-Feldern:
+
+```php
+flz_ui_register_shortcode_block(
+    array(
+        'name'        => 'flz/beispiel',
+        'shortcode'   => 'flz_beispiel',
+        'title'       => 'FLZ Beispiel',
+        'description' => 'Frontend-Ausgabe des Beispielplugins.',
+        'attributes'  => array(
+            'danke' => array(
+                'type'    => 'string',
+                'default' => '',
+            ),
+        ),
+        'fields'      => array(
+            'danke' => array(
+                'label'       => 'Danke-Seite-ID',
+                'description' => 'Optionaler Redirect nach erfolgreicher Aktion.',
+            ),
+        ),
+    )
+);
+```
+
+Die Blocks erscheinen in der Kategorie `Tagore / FLZ`. Bestehende Shortcodes
+bleiben dadurch kompatibel, neue Seiten können aber ohne manuelle
+Shortcode-Syntax gepflegt werden.
+
+Der Editor-Placeholder nutzt `useBlockProps()`, damit dynamische
+Shortcode-Blöcke im Gutenberg-Editor zuverlässig auswählbar, bearbeitbar und
+entfernbar bleiben.
+
+## Admin-Tabellen
+
+Für sortierbare Tabellenköpfe steht ein gemeinsamer Link-Renderer bereit:
+
+```php
+echo flz_ui()->admin_table_sort_link(
+    array(
+        'label'         => 'Name',
+        'sort'          => 'name',
+        'current_sort'  => $orderby,
+        'current_order' => $order,
+        'url_args'      => array(
+            'page' => 'flz_beispiel',
+        ),
+    )
+);
+```
+
+Die Fachplugins bleiben für Sanitizing, erlaubte Sortierschlüssel und die
+eigentliche Datenfilterung zuständig. Das UI-Plugin kümmert sich nur um
+konsistentes Markup, Umschaltlogik und Escaping.
+
+Filterformulare in Tabellenköpfen nutzen die Klasse
+`.flz-ui-table-filter-form`. Das gemeinsame UI-Script sendet solche GET-Filter
+automatisch ab: Texteingaben nach kurzer Entprellung, Selects sofort beim
+Wechsel. Ein sichtbarer Filterbutton darf als Fallback für deaktiviertes
+JavaScript stehen bleiben.
+
+## Floating Action Panel
+
+Für lange Frontend-Seiten mit einer wichtigen Aktion gibt es
+`floating_action_panel()`. Die Komponente rendert einen Sticky-Button und ein
+seitliches Panel; auf schmalen Displays wird daraus ein Bottom-Sheet. Ohne
+JavaScript bleibt das Panel über den Anker-Link erreichbar.
+
+```php
+echo flz_ui()->floating_action_panel(
+    array(
+        'id'           => 'flz-demo-panel',
+        'title'        => 'Anmeldung',
+        'button_label' => 'Zur Anmeldung',
+        'content'      => $already_escaped_form_html,
+        'open'         => $has_form_messages,
+    )
+);
+```
+
+`content` wird bewusst nicht durch `wp_kses_post()` gefiltert, damit Formulare
+und Nonces erhalten bleiben. Aufrufende Plugins müssen den Inhalt deshalb
+bereits sicher rendern und escapen.
 
 ## Datumsformat
 

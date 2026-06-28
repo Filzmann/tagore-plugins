@@ -73,6 +73,26 @@ Jede Änderung an flz_wpdb_objects braucht deshalb:
 - Rückwärtskompatibilitätsprüfung
 - Migrationshinweis, falls Datenbankstruktur oder API geändert wird
 
+## Gemeinsame Best Practices
+
+Bei Refactorings, Sicherheitsarbeiten, UI-Zentralisierung und wiederkehrenden
+Fehlerbildern ist aktiv zu prüfen, ob daraus eine allgemeine Best Practice für
+die eigenen Tagore-Plugins entsteht. Solche Erkenntnisse sollen nicht nur lokal
+im betroffenen Plugin umgesetzt, sondern dem Nutzer kurz zur Aufnahme in diese
+`AGENTS.md` vorgeschlagen werden. Nach ausdrücklicher Zustimmung werden sie hier
+als gemeinsame Arbeitsregel dokumentiert.
+
+Frontend-Shortcodes eigener Plugins sollen, wenn sie redaktionell in Seiten
+eingefügt werden, zusätzlich über `flz_ui_register_shortcode_block()` aus
+`flz_ui_components` als Gutenberg-Block registriert werden. Der Shortcode darf
+als stabile Rendering-Grenze bestehen bleiben; neue oder gepflegte Seiten sollen
+aber bevorzugt den Block verwenden.
+
+Technische Fehlerketten eigener Plugins sollen zentral über
+`flz_wpdb_objects\FlzWpdbObjectsException::log_error()` protokolliert werden.
+Sichtbare Fehlermeldungen bleiben Aufgabe des jeweiligen Fachplugins und müssen
+sicher, knapp und ohne interne Details formuliert sein.
+
 ## Arbeitsweise
 
 Vor jeder größeren Änderung:

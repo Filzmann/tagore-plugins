@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: flz_wpdb_objects
+Plugin Name: FLZ WPDB Objects
 Plugin URI: Deine Plugin-URI
 Description: Stellt WordPress-Datenbankfunktionen als einfache CRUD-Modelle zur Verfügung
 Version: 1.3.0

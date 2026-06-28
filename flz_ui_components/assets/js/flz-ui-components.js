@@ -98,6 +98,95 @@
     return form.checkValidity();
   }
 
+  function submitFilterForm(form) {
+    if (!form || form.getAttribute('data-flz-ui-submitting') === 'true') {
+      return;
+    }
+
+    if (!validateForm(form)) {
+      return;
+    }
+
+    form.setAttribute('data-flz-ui-submitting', 'true');
+
+    if (typeof form.requestSubmit === 'function') {
+      form.requestSubmit();
+    } else {
+      form.submit();
+    }
+  }
+
+  function scheduleFilterSubmit(form, delay) {
+    if (!form) {
+      return;
+    }
+
+    window.clearTimeout(form._flzUiFilterTimer);
+    form._flzUiFilterTimer = window.setTimeout(function () {
+      submitFilterForm(form);
+    }, delay);
+  }
+
+  function floatingPanelFor(element) {
+    return element && element.closest && element.closest('[data-flz-ui-floating-panel]');
+  }
+
+  function focusablePanelElements(panel) {
+    if (!panel) {
+      return [];
+    }
+
+    return Array.prototype.slice.call(panel.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'));
+  }
+
+  function setFloatingPanel(panel, open) {
+    var trigger;
+    var drawer;
+    var focusTarget;
+
+    if (!panel) {
+      return;
+    }
+
+    trigger = panel.querySelector('[data-flz-ui-floating-panel-open]');
+    drawer = panel.querySelector('.flz-ui-floating-panel__drawer');
+    panel.classList.toggle('is-open', Boolean(open));
+
+    if (trigger) {
+      trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+
+    document.body.classList.toggle('flz-ui-floating-panel-open', Boolean(document.querySelector('.flz-ui-floating-panel.is-open')));
+
+    if (open) {
+      focusTarget = drawer && (drawer.querySelector('.flz-ui-notice--error, .notice-error') || drawer.querySelector('input:not([type="hidden"]), select, textarea, button, a[href]'));
+      if (!focusTarget) {
+        focusTarget = drawer;
+      }
+    } else {
+      focusTarget = trigger;
+    }
+
+    if (focusTarget && typeof focusTarget.focus === 'function') {
+      window.setTimeout(function () {
+        focusTarget.focus({preventScroll: false});
+      }, 0);
+    }
+  }
+
+  function closeOpenFloatingPanels() {
+    document.querySelectorAll('.flz-ui-floating-panel.is-open').forEach(function (panel) {
+      setFloatingPanel(panel, false);
+    });
+  }
+
+  function updateChoiceCardState(scope) {
+    (scope || document).querySelectorAll('.flz-ui-choice-card').forEach(function (card) {
+      var input = card.querySelector('input[type="radio"], input[type="checkbox"]');
+      card.classList.toggle('is-checked', Boolean(input && input.checked));
+    });
+  }
+
   function detailsFor(row) {
     if (!row || !row.id) {
       return null;
@@ -240,10 +329,36 @@
   document.addEventListener('input', function (event) {
     var target = event.target;
     var field = target.closest && target.closest('.flz-ui-field');
+    var filterForm = target.closest && target.closest('.flz-ui-table-filter-form');
 
     if (field && typeof target.checkValidity === 'function' && target.checkValidity()) {
       field.classList.remove('flz-ui-field--has-error');
       target.removeAttribute('aria-invalid');
+    }
+
+    if (filterForm && !event.isComposing && target.type !== 'hidden') {
+      scheduleFilterSubmit(filterForm, 350);
+    }
+  });
+
+  document.addEventListener('change', function (event) {
+    var target = event.target;
+    var filterForm = target.closest && target.closest('.flz-ui-table-filter-form');
+    var choiceCard = target.closest && target.closest('.flz-ui-choice-card');
+
+    if (!filterForm || target.type === 'hidden') {
+      if (choiceCard) {
+        updateChoiceCardState(document);
+      }
+      return;
+    }
+
+    if (target.tagName === 'SELECT' || target.type === 'checkbox' || target.type === 'radio') {
+      scheduleFilterSubmit(filterForm, 0);
+    }
+
+    if (choiceCard) {
+      updateChoiceCardState(document);
     }
   });
 
@@ -253,8 +368,23 @@
     var cancelButton = target.closest && target.closest('[data-flz-ui-cancel-edit-row]');
     var newButton = target.closest && target.closest('[data-flz-ui-show-new-row]');
     var matrixButton = target.closest && target.closest('[data-flz-ui-add-matrix-row]');
+    var panelOpenButton = target.closest && target.closest('[data-flz-ui-floating-panel-open]');
+    var panelCloseButton = target.closest && target.closest('[data-flz-ui-floating-panel-close]');
     var row;
     var details;
+    var panel;
+
+    if (panelOpenButton) {
+      event.preventDefault();
+      setFloatingPanel(floatingPanelFor(panelOpenButton), true);
+      return;
+    }
+
+    if (panelCloseButton) {
+      event.preventDefault();
+      setFloatingPanel(floatingPanelFor(panelCloseButton), false);
+      return;
+    }
 
     if (matrixButton) {
       event.preventDefault();
@@ -298,10 +428,60 @@
     }
   });
 
+  document.addEventListener('keydown', function (event) {
+    var panel;
+    var focusable;
+    var first;
+    var last;
+
+    if (event.key === 'Escape') {
+      closeOpenFloatingPanels();
+      return;
+    }
+
+    if (event.key !== 'Tab') {
+      return;
+    }
+
+    panel = document.querySelector('.flz-ui-floating-panel.is-open');
+    if (!panel || !panel.contains(document.activeElement)) {
+      return;
+    }
+
+    focusable = focusablePanelElements(panel);
+    if (focusable.length === 0) {
+      return;
+    }
+
+    first = focusable[0];
+    last = focusable[focusable.length - 1];
+
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
+
+  document.addEventListener('DOMContentLoaded', function () {
+    updateChoiceCardState(document);
+    document.querySelectorAll('.flz-ui-floating-panel.is-open').forEach(function (panel) {
+      var trigger = panel.querySelector('[data-flz-ui-floating-panel-open]');
+
+      if (trigger) {
+        trigger.setAttribute('aria-expanded', 'true');
+      }
+      document.body.classList.add('flz-ui-floating-panel-open');
+    });
+  });
+
   window.flzUi = window.flzUi || {};
   window.flzUi.createButton = createButton;
   window.flzUi.createIcon = createIcon;
   window.flzUi.validateForm = validateForm;
   window.flzUi.showNewEditableRow = showNewRow;
   window.flzUi.addMatrixRow = addMatrixRow;
+  window.flzUi.updateChoiceCardState = updateChoiceCardState;
 }());

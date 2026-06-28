@@ -11,6 +11,47 @@ defined('ABSPATH') || exit;
 trait Flz_Ui_Components_Layout_Rendering
 {
     /**
+     * Rendert einen sortierbaren Tabellenkopf-Link für Admin-Tabellen.
+     *
+     * Die Fachplugins liefern nur aktuelle Query-Argumente und Spaltennamen;
+     * Umschalten von auf-/absteigend, Markup und Escaping bleiben zentral.
+     *
+     * @param array<string,mixed> $args Linkargumente.
+     */
+    public function admin_table_sort_link(array $args): string
+    {
+        $label = isset($args['label']) ? (string) $args['label'] : '';
+        $sort = isset($args['sort']) ? sanitize_key((string) $args['sort']) : '';
+        $current_sort = isset($args['current_sort']) ? sanitize_key((string) $args['current_sort']) : '';
+        $current_order = isset($args['current_order']) ? strtolower(sanitize_key((string) $args['current_order'])) : 'asc';
+
+        if ('' === trim($label) || '' === $sort) {
+            throw new InvalidArgumentException('flz_ui admin_table_sort_link benötigt Label und Sortierschlüssel.');
+        }
+
+        $is_active = $sort === $current_sort;
+        $next_order = $is_active && 'asc' === $current_order ? 'desc' : 'asc';
+        $url_args = isset($args['url_args']) && is_array($args['url_args']) ? $args['url_args'] : array();
+        $url_args['orderby'] = $sort;
+        $url_args['order'] = $next_order;
+
+        $classes = array('flz-ui-sort-link');
+        if ($is_active) {
+            $classes[] = 'is-active';
+            $classes[] = 'is-' . ('desc' === $current_order ? 'desc' : 'asc');
+        }
+
+        $indicator = $is_active
+            ? ('desc' === $current_order ? '↓' : '↑')
+            : '↕';
+
+        return '<a class="' . esc_attr($this->classes($classes)) . '" href="' . esc_url(admin_url('admin.php?' . http_build_query($url_args))) . '">'
+            . '<span>' . esc_html($label) . '</span>'
+            . '<span class="flz-ui-sort-link__indicator" aria-hidden="true">' . esc_html($indicator) . '</span>'
+            . '</a>';
+    }
+
+    /**
      * Rendert ein kurzes Formular, das nur eine Aktion mit Hidden Fields ausführt.
      *
      * Dadurch bleiben Lösch-, Leeren-, Widerrufs- und ähnliche Aktionsformulare
@@ -45,6 +86,98 @@ trait Flz_Ui_Components_Layout_Rendering
         $html = $this->form_start($form);
         $html .= $this->preset_button($preset, $button);
         $html .= $this->form_end();
+
+        return $html;
+    }
+
+    /**
+     * Rendert einen festen Call-to-Action mit seitlichem Panel/Bottom-Sheet.
+     *
+     * Das Panel bleibt ohne JavaScript über den Anker-Link erreichbar. Mit
+     * JavaScript wird daraus ein ruhiger Drawer mit Fokusführung und
+     * Escape-/Schließen-Verhalten. Der HTML-Inhalt muss vom aufrufenden Plugin
+     * bereits sicher gerendert/escaped sein, weil Formulare nicht durch
+     * wp_kses_post() laufen können.
+     *
+     * @param array<string,mixed> $args Komponentenargumente.
+     */
+    public function floating_action_panel(array $args): string
+    {
+        static $counter = 0;
+
+        ++$counter;
+
+        $id = !empty($args['id'])
+            ? $this->safe_token((string) $args['id'])
+            : 'flz-ui-floating-panel-' . $counter;
+        $drawer_id = $id . '-drawer';
+        $title_id = $id . '-title';
+        $after_id = $id . '-after';
+        $title = isset($args['title']) ? (string) $args['title'] : '';
+        $content = isset($args['content']) ? (string) $args['content'] : '';
+
+        if ('' === trim($title) || '' === trim($content)) {
+            throw new InvalidArgumentException('flz_ui floating_action_panel benötigt Titel und Inhalt.');
+        }
+
+        $classes = array('flz-ui-floating-panel');
+        if (!empty($args['open'])) {
+            $classes[] = 'is-open';
+        }
+
+        $attrs = isset($args['attrs']) && is_array($args['attrs']) ? $args['attrs'] : array();
+        $attrs['id'] = $id;
+        $attrs['class'] = $this->classes($classes, isset($args['class']) ? (string) $args['class'] : '');
+        $attrs['data-flz-ui-floating-panel'] = true;
+
+        $button_label = isset($args['button_label']) ? (string) $args['button_label'] : $title;
+        $button_icon = isset($args['button_icon']) ? (string) $args['button_icon'] : 'check';
+        $close_label = isset($args['close_label']) ? (string) $args['close_label'] : 'Anmeldebereich schließen';
+
+        $html = '<section' . $this->attributes($attrs) . '>';
+        $html .= $this->button(
+            array(
+                'href'     => '#' . $id,
+                'label'    => $button_label,
+                'variant'  => isset($args['button_variant']) ? (string) $args['button_variant'] : 'primary',
+                'icon'     => $button_icon,
+                'icon_alt' => $button_label,
+                'class'    => 'flz-ui-floating-panel__trigger',
+                'attrs'    => array(
+                    'aria-controls' => $drawer_id,
+                    'aria-expanded' => !empty($args['open']) ? 'true' : 'false',
+                    'data-flz-ui-floating-panel-open' => true,
+                ),
+            )
+        );
+        $html .= '<a class="flz-ui-floating-panel__scrim" href="#' . esc_attr($after_id) . '" data-flz-ui-floating-panel-close aria-hidden="true" tabindex="-1"></a>';
+        $html .= '<div class="flz-ui-floating-panel__drawer" id="' . esc_attr($drawer_id) . '" role="region" aria-labelledby="' . esc_attr($title_id) . '" tabindex="-1">';
+        $html .= '<div class="flz-ui-floating-panel__header">';
+        $html .= '<h2 class="flz-ui-floating-panel__title" id="' . esc_attr($title_id) . '">' . esc_html($title) . '</h2>';
+        $html .= $this->icon_button(
+            array(
+                'href'     => '#' . $after_id,
+                'icon'     => 'close',
+                'icon_alt' => $close_label,
+                'label'    => $close_label,
+                'variant'  => 'secondary',
+                'class'    => 'flz-ui-floating-panel__close',
+                'attrs'    => array(
+                    'aria-controls' => $drawer_id,
+                    'data-flz-ui-floating-panel-close' => true,
+                ),
+            )
+        );
+        $html .= '</div>';
+
+        if (!empty($args['description'])) {
+            $html .= '<p class="flz-ui-floating-panel__description">' . wp_kses_post((string) $args['description']) . '</p>';
+        }
+
+        $html .= '<div class="flz-ui-floating-panel__content">' . $content . '</div>';
+        $html .= '</div>';
+        $html .= '<span class="flz-ui-floating-panel__after" id="' . esc_attr($after_id) . '" tabindex="-1"></span>';
+        $html .= '</section>';
 
         return $html;
     }

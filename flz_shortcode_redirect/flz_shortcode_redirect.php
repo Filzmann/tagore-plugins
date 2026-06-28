@@ -1,11 +1,29 @@
 <?php
 /*
-Plugin Name: Shortcode Redirect
+Plugin Name: FLZ Shortcode Redirect
 Description: Redirects based on shortcode parameters and GET variables.
 Version: 1.1.0
 */
 
 defined( 'ABSPATH' ) || exit;
+
+/**
+ * Protokolliert Redirect-Probleme mit Shared-Logging, falls verfügbar.
+ */
+function flz_shortcode_redirect_log( string $message ): void {
+	$error = new RuntimeException( $message );
+
+	if ( class_exists( 'flz_wpdb_objects\\FlzWpdbObjectsException' ) ) {
+		flz_wpdb_objects\FlzWpdbObjectsException::log_error(
+			$error,
+			'flz_shortcode_redirect',
+			'Ausführen des Redirect-Shortcodes'
+		);
+		return;
+	}
+
+	error_log( '[flz_shortcode_redirect] ' . $message );
+}
 
 /**
  * Leitet nicht angemeldete Besucher ohne passendes Secret sicher weiter.
@@ -37,14 +55,14 @@ function flz_shortcode_redirect( $atts ): string {
 
 	$redirect_url = esc_url_raw( (string) $atts['redirect'] );
 	if ( $redirect_url === '' ) {
-		error_log( '[flz_shortcode_redirect] Weiterleitung abgebrochen: Im Shortcode fehlt eine gültige Ziel-URL.' );
+		flz_shortcode_redirect_log( 'Weiterleitung abgebrochen: Im Shortcode fehlt eine gültige Ziel-URL.' );
 		return '<p>' . esc_html__( 'Die Weiterleitung ist nicht konfiguriert.', 'flz-shortcode-redirect' ) . '</p>';
 	}
 
 	if ( headers_sent( $source_file, $source_line ) ) {
-		error_log(
-			'[flz_shortcode_redirect] Weiterleitung nicht mehr möglich: HTTP-Header wurden bereits in '
-			. $source_file . ':' . (string) $source_line . ' gesendet.'
+		flz_shortcode_redirect_log(
+			'Weiterleitung nicht mehr möglich: HTTP-Header wurden bereits in '
+			. (string) $source_file . ':' . (string) $source_line . ' gesendet.'
 		);
 		return '<p><a href="' . esc_url( $redirect_url ) . '">'
 			. esc_html__( 'Zur Zielseite', 'flz-shortcode-redirect' )
@@ -52,7 +70,7 @@ function flz_shortcode_redirect( $atts ): string {
 	}
 
 	if ( ! wp_safe_redirect( $redirect_url ) ) {
-		error_log( '[flz_shortcode_redirect] wp_safe_redirect() hat die Ziel-URL abgelehnt.' );
+		flz_shortcode_redirect_log( 'wp_safe_redirect() hat die Ziel-URL abgelehnt.' );
 		return '<p>' . esc_html__( 'Die Weiterleitung konnte nicht ausgeführt werden.', 'flz-shortcode-redirect' ) . '</p>';
 	}
 	exit;

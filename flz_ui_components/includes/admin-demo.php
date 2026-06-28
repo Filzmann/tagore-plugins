@@ -10,12 +10,14 @@ defined('ABSPATH') || exit;
  */
 function flz_ui_components_register_admin_demo_page(): void
 {
-    add_management_page(
+    add_menu_page(
         'FLZ UI Components',
         'FLZ UI Components',
         'manage_options',
         'flz-ui-components',
-        'flz_ui_components_render_admin_demo_page'
+        'flz_ui_components_render_admin_demo_page',
+        'dashicons-layout',
+        29
     );
 }
 
@@ -227,7 +229,7 @@ function flz_ui_components_demo_render_composed_components(Flz_Ui_Components_Ren
 {
     echo '<section class="flz-ui-demo__section">';
     echo '<h2>' . esc_html__('Verbundkomponenten', 'flz-ui-components') . '</h2>';
-    echo '<p>' . esc_html__('CSV-Panel, Aktionsformular, Feld-Matrix und Karten setzen sich aus den bestehenden Feldern und Buttons zusammen.', 'flz-ui-components') . '</p>';
+    echo '<p>' . esc_html__('CSV-Panel, Aktionsformular, Floating-Panel, Feld-Matrix und Karten setzen sich aus den bestehenden Feldern und Buttons zusammen.', 'flz-ui-components') . '</p>';
 
     echo '<div class="flz-ui-demo__row">';
     echo $renderer->action_form_button( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Renderer escaped die Komponente.
@@ -240,6 +242,16 @@ function flz_ui_components_demo_render_composed_components(Flz_Ui_Components_Ren
         )
     );
     echo '</div>';
+
+    echo $renderer->floating_action_panel( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Demo-Inhalt ist statisch und escaped.
+        array(
+            'id'           => 'flz-ui-demo-floating-panel',
+            'title'        => 'Floating-Panel',
+            'description'  => 'Demo für lange Frontend-Seiten: Der Button bleibt erreichbar und öffnet ein ruhiges Panel.',
+            'button_label' => 'Demo-Panel öffnen',
+            'content'      => '<p>' . esc_html__('Hier könnte ein Formular stehen. Auf Mobilgeräten wird daraus ein Bottom-Sheet.', 'flz-ui-components') . '</p>',
+        )
+    );
 
     echo $renderer->csv_panel( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Renderer escaped die Komponente.
         array(
