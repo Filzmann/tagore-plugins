@@ -19,17 +19,20 @@ description: Scaffold and register a new custom Tagore WordPress plugin or theme
 
 ## Scaffold
 
-For a plugin, create `<slug>/<slug>.php` with a valid WordPress plugin header,
-guard direct access, keep bootstrap/hook registration thin, and add `tests/`.
+For a plugin, create `repositories/<slug>/<slug>.php` with a valid WordPress
+plugin header, guard direct access, keep bootstrap/hook registration thin, and
+add `tests/`.
 
-For a Classic Theme, create `themes/<slug>/style.css`, `functions.php`,
+For a Classic Theme, create `repositories/<slug>/style.css`, `functions.php`,
 `index.php`, `README.md`, `AGENTS.md` and `tests/`. For a Block Theme, create
 `style.css`, valid `theme.json`, `templates/index.html`, `README.md`,
 `AGENTS.md` and `tests/`. Add only assets and template parts required by the
 concrete request.
 
-The local component `AGENTS.md` must narrow domain rules without contradicting
-the root. It references the root skills rather than duplicating them.
+Initialize the component directory as its own Git repository on `main`. The
+local `AGENTS.md` must be self-contained because the coordinator's root rules
+do not apply inside that repository; preserve the same safety and verification
+contracts without relying on an unavailable parent rule.
 
 ## Register and connect
 

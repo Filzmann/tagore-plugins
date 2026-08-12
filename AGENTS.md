@@ -2,8 +2,8 @@
 
 ## Zweck und Routing
 
-Dieses Repository ist der gemeinsame Quell- und Steuerungs-Workspace für die
-eigenen WordPress-Plugins und -Themes des Tagore-Gymnasiums. Die lokale
+Dieses Repository ist der Koordinations-Workspace für eigenständige
+WordPress-Plugin- und Theme-Repositories des Tagore-Gymnasiums. Die lokale
 WordPress-Laufzeit bleibt getrennt unter `../tagore-local`; WordPress-Core,
 Uploads und fremde Erweiterungen gehören nicht in dieses Repository.
 
@@ -22,8 +22,8 @@ mit `create-wordpress-extension` angelegt. Workspace-Prüfungen folgen
 
 ## Geltungsbereich und Grenzen
 
-- Eigener Quellcode liegt in den im Komponenten-Inventar registrierten
-  Plugin-Verzeichnissen oder unter `themes/`.
+- Eigener Quellcode liegt ausschließlich in den im Komponenten-Inventar
+  registrierten, eigenständigen Git-Repositories unter `repositories/`.
 - Neue Plugins verwenden `flz_<name>`, neue Themes `flz-<name>` als Slug.
   Hooks, Optionen, Tabellen, REST-Routen, Nonce-Actions, Handles, PHP-Symbole
   und Textdomains erhalten einen daraus eindeutig abgeleiteten Präfix.

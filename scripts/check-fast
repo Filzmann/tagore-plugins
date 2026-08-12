@@ -8,31 +8,14 @@ echo "=== Workspace structure ==="
 ./scripts/check-workspace-structure
 
 echo
-echo "=== Composer metadata ==="
-if command -v composer >/dev/null 2>&1; then
-	composer validate --no-check-publish
-else
-	php -r '
-json_decode(file_get_contents("composer.json"), true, 512, JSON_THROW_ON_ERROR);
-echo "composer.json: valid JSON (Composer CLI unavailable)" . PHP_EOL;
-'
-fi
-
-echo
-echo "=== PHP syntax ==="
-php_paths=()
-while IFS=$'\t' read -r path kind _slug _runtime_link; do
+echo "=== Component repositories ==="
+while IFS=$'\t' read -r path kind slug _runtime_link; do
 	[[ "$path" == "path" ]] && continue
-	case "$kind" in
-		plugin|theme) php_paths+=("$path") ;;
-	esac
+	[[ "$kind" == "plugin" || "$kind" == "theme" ]] || continue
+	echo
+	echo "--- $slug ---"
+	"$ROOT_DIR/$path/scripts/check-fast"
 done < config/workspace-components.tsv
-
-if ((${#php_paths[@]} > 0)); then
-	find "${php_paths[@]}" -type f -name '*.php' -print0 \
-		| xargs -0 -r -n1 php -l >/dev/null
-fi
-echo "PHP syntax: OK"
 
 echo
 echo "=== Diff hygiene ==="

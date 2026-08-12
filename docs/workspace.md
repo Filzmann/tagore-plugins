@@ -12,26 +12,28 @@ tagore-plugins/
 |-- config/workspace-components.tsv # kanonisches Inventar
 |-- docs/
 |-- scripts/                        # Prüf- und Laufzeitharness
-|-- flz_*/                          # bestehende eigene Plugins
-`-- themes/                         # neue eigene Themes
+`-- repositories/                  # ignorierter Container eigenständiger Repos
+    |-- flz_wpdb_objects/.git/
+    `-- ...
 
 ../tagore-local/                    # getrennte DDEV-/WordPress-Laufzeit
 `-- public/wp-content/
-    |-- plugins/<slug> -> tagore-plugins/<slug>
-    `-- themes/<slug>  -> tagore-plugins/themes/<slug>
+    |-- plugins/<slug> -> tagore-plugins/repositories/<slug>
+    `-- themes/<slug>  -> tagore-plugins/repositories/<slug>
 ```
 
-Das Repository bleibt aus historischen Gründen `tagore-plugins` benannt,
-fungiert aber als gemeinsamer Quell-Workspace für Plugins und Themes. Die
-bestehenden Plugin-Pfade werden nicht verschoben, damit Symlinks, Deployments
-und Historie stabil bleiben.
+Das Repository bleibt aus historischen Gründen `tagore-plugins` benannt und
+fungiert nur noch als Koordinator. `repositories/` ist im Koordinator ignoriert;
+jeder Unterordner ist ein eigenständiges Git-Repository. Das Inventar verbindet
+Repos, Slugs und Laufzeitlinks, ohne eine zweite Komponentenliste einzuführen.
 
 ## VS Code
 
-`tagore-wordpress.code-workspace` öffnet zwei Wurzeln:
+`tagore-wordpress.code-workspace` öffnet den Koordinator, jedes Plugin-Repo und
+die lokale Laufzeit als getrennte Wurzeln:
 
-- `Tagore WordPress Sources`: dieses Repository mit Plugins, Themes, Regeln
-  und Harness;
+- `Tagore WordPress Coordination`: Inventar, Regeln und Harness;
+- je eine benannte Plugin-Wurzel: der tatsächlich versionierte Quellcode;
 - `Tagore Local Runtime`: die DDEV-Konfiguration. Der große WordPress-Baum
   `public/` ist in Explorer, Suche und Dateiwächter ausgeblendet.
 
@@ -47,7 +49,7 @@ und Theme-Header. Neue Komponenten werden mit dem Skill
 `create-wordpress-extension` registriert.
 
 Plugins heißen `flz_<name>`; Theme-Slugs heißen `flz-<name>`. Ein eigenes
-Theme wird unter `themes/<slug>` entwickelt und nicht aus dem installierten
+Theme wird als `repositories/<slug>` entwickelt und nicht aus dem installierten
 Fremdtheme `deep-light` heraus verändert.
 
 ## Lokale Laufzeit

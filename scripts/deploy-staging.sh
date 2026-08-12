@@ -17,10 +17,17 @@ APPLY=0
 REACTIVATE=0
 SKIP_CHECKS=0
 
-mapfile -t PLUGINS < <(
-  awk -F '\t' '$2 == "plugin" { print $3 }' \
+mapfile -t PLUGIN_ROWS < <(
+  awk -F '\t' '$2 == "plugin" { print $1 "\t" $3 }' \
     "$REPO_DIR/config/workspace-components.tsv"
 )
+PLUGINS=()
+declare -A PLUGIN_PATHS=()
+for row in "${PLUGIN_ROWS[@]}"; do
+  IFS=$'\t' read -r plugin_path plugin_slug <<< "$row"
+  PLUGINS+=("$plugin_slug")
+  PLUGIN_PATHS["$plugin_slug"]="$plugin_path"
+done
 ACTIVATE_ORDER=("${PLUGINS[@]}")
 DEACTIVATE_ORDER=()
 for ((index = ${#PLUGINS[@]} - 1; index >= 0; index--)); do
@@ -112,6 +119,14 @@ if [[ -n "$(git status --porcelain)" ]]; then
   exit 1
 fi
 
+for plugin in "${PLUGINS[@]}"; do
+  source_dir="$REPO_DIR/${PLUGIN_PATHS[$plugin]}"
+  if [[ -n "$(git -C "$source_dir" status --porcelain)" ]]; then
+    echo "ERROR: Plugin repository is not clean: $plugin" >&2
+    exit 1
+  fi
+done
+
 echo "=== Remote PHP/WP-CLI ==="
 if ! REMOTE_PHP="$(find_remote_php)"; then
   echo "ERROR: Could not find a usable PHP binary on staging." >&2
@@ -127,7 +142,6 @@ echo
 
 if [[ "$SKIP_CHECKS" -ne 1 ]]; then
   echo "=== Local checks ==="
-  ./scripts/phpcs-flz-ags.sh
   ./scripts/check-local.sh
   git diff --check
   echo
@@ -185,7 +199,8 @@ RSYNC_EXCLUDES=(
 )
 
 for plugin in "${PLUGINS[@]}"; do
-  if [[ ! -d "$REPO_DIR/$plugin" ]]; then
+  source_dir="$REPO_DIR/${PLUGIN_PATHS[$plugin]}"
+  if [[ ! -d "$source_dir" ]]; then
     echo "ERROR: Local plugin directory missing: $plugin" >&2
     exit 1
   fi
@@ -200,7 +215,7 @@ for plugin in "${PLUGINS[@]}"; do
 
   rsync "${RSYNC_FLAGS[@]}" "${RSYNC_EXCLUDES[@]}" \
     -e "ssh $SSH_OPTS" \
-    "$REPO_DIR/$plugin/" \
+    "$source_dir/" \
     "$SSH_TARGET:$REMOTE_PLUGIN_PATH/$plugin/"
 done
 

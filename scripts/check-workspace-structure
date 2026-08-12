@@ -55,46 +55,38 @@ while IFS=$'\t' read -r path kind slug runtime_link; do
 	case "$kind" in
 		plugin)
 			[[ "$slug" == flz_* ]] || fail "plugin slug must start with flz_: $slug"
-			[[ "$path" == "$slug" ]] || fail "plugin path and slug differ: $path / $slug"
+			[[ "$path" == "repositories/$slug" ]] || fail "plugin path and slug differ: $path / $slug"
 			[[ "$runtime_link" == "plugins/$slug" ]] || fail "invalid plugin runtime link: $runtime_link"
 			main_file="$ROOT_DIR/$path/$slug.php"
 			[[ -f "$main_file" ]] || fail "plugin bootstrap missing: $path/$slug.php"
 			rg -q 'Plugin Name:' "$main_file" || fail "Plugin Name header missing: $path/$slug.php"
 			[[ -f "$ROOT_DIR/$path/AGENTS.md" ]] || fail "plugin rules missing: $path/AGENTS.md"
-			rg -q 'work-in-wordpress-extension' "$ROOT_DIR/$path/AGENTS.md" \
-				|| fail "plugin work skill not referenced: $path/AGENTS.md"
-			rg -q 'test-driven-wordpress-change' "$ROOT_DIR/$path/AGENTS.md" \
-				|| fail "plugin TDD skill not referenced: $path/AGENTS.md"
+			[[ -d "$ROOT_DIR/$path/.git" ]] || fail "plugin is not an independent Git repository: $path"
+			[[ -x "$ROOT_DIR/$path/scripts/check-fast" ]] || fail "plugin check missing: $path/scripts/check-fast"
 			;;
 		theme)
 			[[ "$slug" == flz-* ]] || fail "theme slug must start with flz-: $slug"
-			[[ "$path" == "themes/$slug" ]] || fail "theme path and slug differ: $path / $slug"
+			[[ "$path" == "repositories/$slug" ]] || fail "theme path and slug differ: $path / $slug"
 			[[ "$runtime_link" == "themes/$slug" ]] || fail "invalid theme runtime link: $runtime_link"
 			[[ -f "$ROOT_DIR/$path/style.css" ]] || fail "theme style.css missing: $path"
 			rg -q 'Theme Name:' "$ROOT_DIR/$path/style.css" || fail "Theme Name header missing: $path/style.css"
 			[[ -f "$ROOT_DIR/$path/AGENTS.md" ]] || fail "theme rules missing: $path/AGENTS.md"
-			rg -q 'work-in-wordpress-extension' "$ROOT_DIR/$path/AGENTS.md" \
-				|| fail "theme work skill not referenced: $path/AGENTS.md"
-			rg -q 'test-driven-wordpress-change' "$ROOT_DIR/$path/AGENTS.md" \
-				|| fail "theme TDD skill not referenced: $path/AGENTS.md"
-			;;
-		theme-root)
-			[[ "$path" == "themes" && "$slug" == "-" && "$runtime_link" == "-" ]] \
-				|| fail "invalid theme-root row"
+			[[ -d "$ROOT_DIR/$path/.git" ]] || fail "theme is not an independent Git repository: $path"
+			[[ -x "$ROOT_DIR/$path/scripts/check-fast" ]] || fail "theme check missing: $path/scripts/check-fast"
 			;;
 		*) fail "unknown component kind '$kind' for $path" ;;
 	esac
 done < "$INVENTORY"
 
-for plugin_dir in "$ROOT_DIR"/flz_*; do
+for plugin_dir in "$ROOT_DIR"/repositories/flz_*; do
 	[[ -d "$plugin_dir" ]] || continue
 	plugin_name="$(basename "$plugin_dir")"
-	[[ -n "${registered[$plugin_name]:-}" ]] || fail "unregistered plugin directory: $plugin_name"
+	[[ -n "${registered[repositories/$plugin_name]:-}" ]] || fail "unregistered plugin repository: $plugin_name"
 done
 
-for theme_dir in "$ROOT_DIR"/themes/flz-*; do
+for theme_dir in "$ROOT_DIR"/repositories/flz-*; do
 	[[ -d "$theme_dir" ]] || continue
-	theme_path="themes/$(basename "$theme_dir")"
+	theme_path="repositories/$(basename "$theme_dir")"
 	[[ -n "${registered[$theme_path]:-}" ]] || fail "unregistered theme directory: $theme_path"
 done
 

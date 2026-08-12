@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-labelledby="title desc">
-  <title id="title">Abstrakte Auswahl-Kachel</title>
-  <desc id="desc">Ruhige Formen mit Häkchen als Platzhalter für eine auswählbare Karte.</desc>
-  <rect width="640" height="360" fill="#f3f7f9"/>
-  <rect x="70" y="62" width="500" height="236" rx="28" fill="#fff" stroke="#006a8e" stroke-width="8"/>
-  <path d="M204 181l66 66 168-166" fill="none" stroke="#006a8e" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="506" cy="88" r="34" fill="#f5b84b"/>
-  <circle cx="134" cy="274" r="24" fill="#b45309" opacity=".55"/>
-</svg>

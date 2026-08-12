@@ -2,9 +2,9 @@
 
 Stand: 12. August 2026. Diese Roadmap fasst die statische Regelprüfung aller
 in `config/workspace-components.tsv` registrierten Komponenten zusammen. Das
-Inventar enthält sechs Plugins und noch kein eigenes Theme. Alle Komponenten
-gehören derzeit zum selben Git-Repository; die Detailpläne liegen jeweils im
-Komponentenverzeichnis.
+Inventar enthält sechs Plugins und noch kein eigenes Theme. Jedes Plugin
+besitzt ein eigenes Git-Repository unter `repositories/`; die Detailpläne
+liegen im jeweiligen Repository.
 
 ## Gesamturteil
 
@@ -16,14 +16,14 @@ folgt aus dieser Prüfung ausdrücklich nicht.
 
 ## P0 – Repository-Trennung als Arbeitsgrundlage
 
-1. Den Plan in `docs/repository-split-plan.md` nach ausdrücklicher Freigabe
-   umsetzen und für jedes Plugin ein eigenes lokales Git-Repository mit
+1. **Erledigt:** Für jedes Plugin ein eigenes lokales Git-Repository mit
    erhaltener komponentenspezifischer Historie herstellen.
-2. `tagore-plugins` zum reinen Koordinations-Workspace umbauen: relatives
-   Inventar, gemeinsame Skills und Checks, aber kein Plugin-Quellcode.
-3. Direkte Includes aus Nachbar-Plugins durch native WordPress-Abhängigkeiten
-   plus defensive, versionierte Bootstrap-Verträge ersetzen.
-4. Alte KI-/Agenten-Weiterleiter und konkurrierende Dokumentation gemäß Plan
+2. **Erledigt:** `tagore-plugins` zum reinen Koordinations-Workspace umbauen:
+   relatives Inventar, gemeinsame Skills und Checks, aber kein Plugin-Quellcode.
+3. **Erledigt:** Direkte Includes aus Nachbar-Plugins durch native
+   WordPress-Abhängigkeiten plus defensive, versionierte Bootstrap-Verträge
+   ersetzt.
+4. **Erledigt:** Alte KI-/Agenten-Weiterleiter und konkurrierende Dokumentation
    bereinigen; sinnvolle Regeln in den jeweils zuständigen Scope übertragen.
 5. Erst danach das unabhängige Theme-Projekt `flz-tagore` gemäß
    `docs/theme-rebuild-roadmap.md` beginnen.
@@ -57,9 +57,9 @@ folgt aus dieser Prüfung ausdrücklich nicht.
 2. Legacy-Schemaänderungen von Elternsprechtag und Probeunterricht mit eigener
    DB-Version und additiven, wiederholbaren Upgradepfaden versehen; frische
    Installation und Upgrade mit synthetischen Bestandsdaten testen.
-3. Direkte Includes interner Dateien von `flz_wpdb_objects` und
-   `flz_ui_components` durch kleine öffentliche Bootstrap-/API-Verträge und
-   defensive Abhängigkeitsprüfung ersetzen.
+3. **Erledigt:** Direkte Includes interner Shared-Dateien durch kleine
+   öffentliche Bootstrap-/API-Verträge und defensive Abhängigkeitsprüfung
+   ersetzt.
 4. Für jede Capability-, Nonce-, Upload-, Export- und öffentliche
    Formulargrenze mindestens einen erlaubten und einen verweigerten oder
    manipulierten Integrationstest ergänzen.

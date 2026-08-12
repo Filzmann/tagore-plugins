@@ -2,9 +2,9 @@
 
 ## Zielbild
 
-`tagore-plugins` wird zum schlanken Koordinations-Workspace. Quellcode liegt
-nicht mehr in diesem Repository, sondern in sieben unabhängigen
-Nachbar-Repositories:
+`tagore-plugins` ist der schlanke Koordinations-Workspace. Der Plugin-Quellcode
+liegt in sechs unabhängigen Git-Repositories im ignorierten Container
+`repositories/`; das siebte Repository entsteht später für das Theme:
 
 | Repository | Typ | Harte Laufzeitabhängigkeiten |
 | --- | --- | --- |
@@ -19,30 +19,21 @@ Nachbar-Repositories:
 Das Theme-Repository wird erst nach Abschluss der Plugin-Trennung erzeugt. Die
 inhaltliche Theme-Roadmap steht in `docs/theme-rebuild-roadmap.md`.
 
-## Git-Strategie
+## Umsetzungsstand der Git-Strategie
 
-1. Den aktuellen, noch uncommitteten Arbeitsstand vollständig prüfen und nach
-   ausdrücklicher Commit-Freigabe als benannten Workspace-Baseline-Commit
-   sichern. Keine fremden Änderungen pauschal stagen.
-2. Für jedes Plugin mit `git subtree split --prefix=<slug>` einen
-   komponentenspezifischen Historienzweig erzeugen. Die Historie des bestehenden
-   Workspace wird dabei nicht umgeschrieben.
-3. Aus jedem Historienzweig ein eigenständiges Repository unter
-   `repositories/<slug>` erzeugen. Der Koordinations-Workspace ignoriert diesen
-   Container vollständig; jedes Kind besitzt sein eigenes `.git`. So bleiben
-   alle Quellen innerhalb der freigegebenen Workspace-Wurzel, ohne wieder zu
-   einem Monorepository zu werden. Erst nach Datei-, Log- und Testvergleich gilt
-   die Kopie als vollständig.
-4. Komponentenbezogene Regeln, Roadmap, README, Tests und eigene Tooling-Dateien
-   in das jeweilige Repository übernehmen. Jedes `AGENTS.md` wird für sein Repo
-   eigenständig und verweist nicht auf eine nicht vorhandene Elternregel.
-5. Im Koordinations-Workspace nur Inventar, gemeinsame Architekturverträge,
-   wiederverwendbare Skills, Workspace-Checks und lokale Orchestrierung
-   behalten. Keine Git-Submodule einführen, solange belastbare Remote-URLs
-   fehlen.
-6. Erst nach erfolgreicher Verifikation die alten Plugin-Unterverzeichnisse aus
-   dem Workspace entfernen und die Laufzeit-Symlinks auf die neuen
-   Repositories umstellen.
+1. **Erledigt:** Workspace-Baseline als benannter Commit gesichert.
+2. **Erledigt:** Pro Plugin mit `git subtree split --prefix=<slug>` eine
+   komponentenspezifische Historie ohne Umschreiben der Workspace-Historie
+   erzeugt.
+3. **Erledigt:** Sechs unabhängige Repositories unter `repositories/<slug>`
+   erzeugt, auf `main` gesetzt und von einem irreführenden lokalen `origin`
+   getrennt.
+4. **Erledigt:** Jedes Plugin besitzt eigenständige Regeln, Roadmap, README,
+   Composer-/PHPCS-Metadaten und `scripts/check-fast`.
+5. **Erledigt:** Der Koordinator behält nur Inventar, Architekturverträge,
+   Skills, Checks und lokale Orchestrierung; es gibt keine Submodule.
+6. **Erledigt:** alte, nun redundante Plugin-Unterverzeichnisse entfernt und
+   Laufzeit-Symlinks auf die eigenständigen Repositories umgestellt.
 
 Remote-Repositories, Pushes und GitHub-Projekte sind ein getrenntes Gate. Ohne
 angegebene Zielorganisation werden nur lokale Git-Repositories erstellt.
@@ -120,7 +111,7 @@ Darstellungskomponenten sind Infrastruktur, kein eigener Import-/Exportbedarf.
 Die Suche in aktuellem Dateibaum und Git-Historie ergab keine zusätzlichen
 `CLAUDE.md`, `GEMINI.md`, `.cursorrules` oder Copilot-Regeldateien.
 
-## Verifikation vor Entfernen der alten Verzeichnisse
+## Verifikation der Trennung
 
 - alter und neuer Dateibaum pro Plugin sind inhaltlich identisch;
 - neuer Git-Log enthält alle komponentenrelevanten Commits;
@@ -130,13 +121,13 @@ Die Suche in aktuellem Dateibaum und Git-Historie ergab keine zusätzlichen
 - Inventar und Workspace-Scripts finden alle sieben Repositories relativ und
   führen keine konkurrierende Komponentenliste;
 - Laufzeit-Symlinks zeigen exakt auf die neuen Repositories;
-- DDEV/WP-CLI erkennt Version und Status jeder Komponente;
+- **Offen:** DDEV/WP-CLI erkennt Version und Status jeder Komponente; Docker
+  steht in der aktuellen Umgebung nicht zur Verfügung.
 - kein Commit, Push, Themewechsel oder Deployment erfolgt implizit.
 
 ## Rückbau
 
-Bis zum letzten Schritt bleiben die bisherigen Plugin-Verzeichnisse
-unangetastet. Bei einem Fehler werden die neuen Repositories verworfen und die
-bestehenden Symlinks bleiben gültig. Nach der Umschaltung können die Symlinks
-auf die alten, im Workspace-Commit erhaltenen Pfade zurückgesetzt werden. Die
-bestehende Git-Historie wird nicht umgeschrieben.
+Die alten Dateien bleiben über den Workspace-Commit `78a4af6` und die
+`split/<slug>`-Zweige wiederherstellbar. Nach der Umschaltung können die
+Laufzeitlinks auf einen ausgecheckten historischen Pfad zurückgesetzt werden.
+Die bestehende Git-Historie wurde nicht umgeschrieben.
