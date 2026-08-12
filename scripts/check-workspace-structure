@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+INVENTORY="$ROOT_DIR/config/workspace-components.tsv"
+
+fail() {
+	echo "ERROR: $*" >&2
+	exit 1
+}
+
+required=(
+	"AGENTS.md"
+	"README.md"
+	"tagore-wordpress.code-workspace"
+	"config/workspace-components.tsv"
+	"docs/architecture.md"
+	"docs/workspace.md"
+	"docs/learning-candidates.md"
+	".codex/config.toml"
+	".codex/agents/explorer.toml"
+	".codex/agents/reviewer.toml"
+	".agents/skills/work-in-wordpress-extension/SKILL.md"
+	".agents/skills/test-driven-wordpress-change/SKILL.md"
+	".agents/skills/create-wordpress-extension/SKILL.md"
+	".agents/skills/verify-wordpress-workspace/SKILL.md"
+	".agents/skills/evaluate-learning-candidate/SKILL.md"
+)
+
+for path in "${required[@]}"; do
+	[[ -e "$ROOT_DIR/$path" ]] || fail "required workspace path missing: $path"
+done
+
+php -r '
+$file = $argv[1];
+$value = json_decode(file_get_contents($file), true);
+if (!is_array($value) || json_last_error() !== JSON_ERROR_NONE) {
+    fwrite(STDERR, "Invalid workspace JSON: " . json_last_error_msg() . PHP_EOL);
+    exit(1);
+}
+' "$ROOT_DIR/tagore-wordpress.code-workspace"
+
+header="$(head -n 1 "$INVENTORY")"
+[[ "$header" == $'path\tkind\tslug\truntime_link' ]] || fail "invalid inventory header"
+
+declare -A registered=()
+while IFS=$'\t' read -r path kind slug runtime_link; do
+	[[ "$path" == "path" ]] && continue
+	[[ -n "$path" && -n "$kind" && -n "$slug" && -n "$runtime_link" ]] \
+		|| fail "incomplete inventory row for '$path'"
+	[[ -d "$ROOT_DIR/$path" ]] || fail "registered path missing: $path"
+	[[ -z "${registered[$path]:-}" ]] || fail "duplicate inventory path: $path"
+	registered[$path]=1
+
+	case "$kind" in
+		plugin)
+			[[ "$slug" == flz_* ]] || fail "plugin slug must start with flz_: $slug"
+			[[ "$path" == "$slug" ]] || fail "plugin path and slug differ: $path / $slug"
+			[[ "$runtime_link" == "plugins/$slug" ]] || fail "invalid plugin runtime link: $runtime_link"
+			main_file="$ROOT_DIR/$path/$slug.php"
+			[[ -f "$main_file" ]] || fail "plugin bootstrap missing: $path/$slug.php"
+			rg -q 'Plugin Name:' "$main_file" || fail "Plugin Name header missing: $path/$slug.php"
+			[[ -f "$ROOT_DIR/$path/AGENTS.md" ]] || fail "plugin rules missing: $path/AGENTS.md"
+			rg -q 'work-in-wordpress-extension' "$ROOT_DIR/$path/AGENTS.md" \
+				|| fail "plugin work skill not referenced: $path/AGENTS.md"
+			rg -q 'test-driven-wordpress-change' "$ROOT_DIR/$path/AGENTS.md" \
+				|| fail "plugin TDD skill not referenced: $path/AGENTS.md"
+			;;
+		theme)
+			[[ "$slug" == flz-* ]] || fail "theme slug must start with flz-: $slug"
+			[[ "$path" == "themes/$slug" ]] || fail "theme path and slug differ: $path / $slug"
+			[[ "$runtime_link" == "themes/$slug" ]] || fail "invalid theme runtime link: $runtime_link"
+			[[ -f "$ROOT_DIR/$path/style.css" ]] || fail "theme style.css missing: $path"
+			rg -q 'Theme Name:' "$ROOT_DIR/$path/style.css" || fail "Theme Name header missing: $path/style.css"
+			[[ -f "$ROOT_DIR/$path/AGENTS.md" ]] || fail "theme rules missing: $path/AGENTS.md"
+			rg -q 'work-in-wordpress-extension' "$ROOT_DIR/$path/AGENTS.md" \
+				|| fail "theme work skill not referenced: $path/AGENTS.md"
+			rg -q 'test-driven-wordpress-change' "$ROOT_DIR/$path/AGENTS.md" \
+				|| fail "theme TDD skill not referenced: $path/AGENTS.md"
+			;;
+		theme-root)
+			[[ "$path" == "themes" && "$slug" == "-" && "$runtime_link" == "-" ]] \
+				|| fail "invalid theme-root row"
+			;;
+		*) fail "unknown component kind '$kind' for $path" ;;
+	esac
+done < "$INVENTORY"
+
+for plugin_dir in "$ROOT_DIR"/flz_*; do
+	[[ -d "$plugin_dir" ]] || continue
+	plugin_name="$(basename "$plugin_dir")"
+	[[ -n "${registered[$plugin_name]:-}" ]] || fail "unregistered plugin directory: $plugin_name"
+done
+
+for theme_dir in "$ROOT_DIR"/themes/flz-*; do
+	[[ -d "$theme_dir" ]] || continue
+	theme_path="themes/$(basename "$theme_dir")"
+	[[ -n "${registered[$theme_path]:-}" ]] || fail "unregistered theme directory: $theme_path"
+done
+
+for skill_file in "$ROOT_DIR"/.agents/skills/*/SKILL.md; do
+	rg -q '^name: [a-z0-9-]+$' "$skill_file" || fail "invalid skill name: $skill_file"
+	rg -q '^description: .+' "$skill_file" || fail "skill description missing: $skill_file"
+	if rg -q '\[TODO|TODO:' "$skill_file"; then
+		fail "unfinished skill template: $skill_file"
+	fi
+done
+
+echo "OK: WordPress workspace structure is consistent."

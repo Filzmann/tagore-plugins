@@ -17,32 +17,15 @@ APPLY=0
 REACTIVATE=0
 SKIP_CHECKS=0
 
-PLUGINS=(
-  "flz_wpdb_objects"
-  "flz_ui_components"
-  "flz_shortcode_redirect"
-  "flz_elternsprechtag"
-  "flz_probeunterricht"
-  "flz_ags"
+mapfile -t PLUGINS < <(
+  awk -F '\t' '$2 == "plugin" { print $3 }' \
+    "$REPO_DIR/config/workspace-components.tsv"
 )
-
-DEACTIVATE_ORDER=(
-  "flz_ags"
-  "flz_elternsprechtag"
-  "flz_probeunterricht"
-  "flz_shortcode_redirect"
-  "flz_ui_components"
-  "flz_wpdb_objects"
-)
-
-ACTIVATE_ORDER=(
-  "flz_wpdb_objects"
-  "flz_ui_components"
-  "flz_shortcode_redirect"
-  "flz_elternsprechtag"
-  "flz_probeunterricht"
-  "flz_ags"
-)
+ACTIVATE_ORDER=("${PLUGINS[@]}")
+DEACTIVATE_ORDER=()
+for ((index = ${#PLUGINS[@]} - 1; index >= 0; index--)); do
+  DEACTIVATE_ORDER+=("${PLUGINS[index]}")
+done
 
 usage() {
   cat <<USAGE

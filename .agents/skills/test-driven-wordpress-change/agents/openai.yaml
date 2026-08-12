@@ -1,0 +1,4 @@
+interface:
+  display_name: "Test-driven WordPress Change"
+  short_description: "Run Red-Green-Refactor for WordPress changes"
+  default_prompt: "Use $test-driven-wordpress-change to implement this WordPress behavior test-first."

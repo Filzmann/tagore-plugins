@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create WordPress Extension"
+  short_description: "Scaffold a Tagore plugin or theme safely"
+  default_prompt: "Use $create-wordpress-extension to scaffold and register this Tagore WordPress plugin or theme."

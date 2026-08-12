@@ -32,3 +32,6 @@ coverage/
 
 # Local reports
 reports/
+
+# Independent component repositories managed by the workspace inventory
+/repositories/

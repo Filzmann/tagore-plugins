@@ -1,0 +1,4 @@
+interface:
+  display_name: "Evaluate Learning Candidate"
+  short_description: "Classify reusable Tagore WordPress learnings"
+  default_prompt: "Use $evaluate-learning-candidate to assess whether this observation should become a durable project rule or check."

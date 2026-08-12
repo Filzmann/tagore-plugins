@@ -1,0 +1,14 @@
+sandbox_mode = "workspace-write"
+approval_policy = "on-request"
+
+[agents]
+max_threads = 3
+max_depth = 1
+
+[agents.explorer]
+description = "Read-only mapping of one Tagore WordPress component, contract, or runtime symptom."
+config_file = "agents/explorer.toml"
+
+[agents.reviewer]
+description = "Read-only review of a Tagore WordPress plan or diff for correctness, security, accessibility, tests, and boundaries."
+config_file = "agents/reviewer.toml"

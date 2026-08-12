@@ -1,19 +1,15 @@
 <?xml version="1.0"?>
-<ruleset name="Tagore Custom Plugins Security Baseline">
-	<description>Security-focused PHPCS rules for Tagore custom WordPress plugins.</description>
+<ruleset name="Tagore Custom WordPress Security Baseline">
+	<description>Security-focused PHPCS rules for custom Tagore WordPress plugins and themes.</description>
 
 	<arg name="basepath" value="."/>
 	<arg name="extensions" value="php"/>
 	<arg name="parallel" value="4"/>
 
-	<file>flz_ags</file>
-	<file>flz_elternsprechtag</file>
-	<file>flz_probeunterricht</file>
-	<file>flz_shortcode_redirect</file>
-	<file>flz_ui_components</file>
-	<file>flz_wpdb_objects</file>
+	<file>.</file>
 
 	<exclude-pattern>*/vendor/*</exclude-pattern>
+	<exclude-pattern>*/.git/*</exclude-pattern>
 
 	<rule ref="WordPress.Security.ValidatedSanitizedInput"/>
 	<rule ref="WordPress.Security.NonceVerification">

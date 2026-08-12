@@ -1,0 +1,109 @@
+{
+  "folders": [
+    {
+      "name": "Tagore WordPress Sources",
+      "path": "."
+    },
+    {
+      "name": "Tagore Local Runtime",
+      "path": "../tagore-local"
+    }
+  ],
+  "settings": {
+    "editor.insertSpaces": false,
+    "editor.tabSize": 4,
+    "editor.detectIndentation": true,
+    "editor.formatOnSave": false,
+    "files.eol": "\n",
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+    "intelephense.environment.phpVersion": "8.3.0",
+    "files.exclude": {
+      "**/.git": true,
+      "**/vendor": true,
+      "**/node_modules": true,
+      "public": true,
+      "public.before-*": true
+    },
+    "search.exclude": {
+      "**/.git": true,
+      "**/vendor": true,
+      "**/node_modules": true,
+      "public": true,
+      "public.before-*": true
+    },
+    "files.watcherExclude": {
+      "**/.git/**": true,
+      "**/vendor/**": true,
+      "**/node_modules/**": true,
+      "**/public/**": true,
+      "**/public.before-*/**": true
+    }
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Check: workspace structure",
+        "type": "shell",
+        "command": "./scripts/check-workspace-structure",
+        "options": { "cwd": "${workspaceFolder:Tagore WordPress Sources}" },
+        "group": "test",
+        "problemMatcher": []
+      },
+      {
+        "label": "Check: fast WordPress workspace",
+        "type": "shell",
+        "command": "./scripts/check-fast",
+        "options": { "cwd": "${workspaceFolder:Tagore WordPress Sources}" },
+        "group": { "kind": "test", "isDefault": true },
+        "problemMatcher": []
+      },
+      {
+        "label": "Check: local WordPress/DDEV",
+        "type": "shell",
+        "command": "./scripts/check-local.sh",
+        "options": { "cwd": "${workspaceFolder:Tagore WordPress Sources}" },
+        "group": "test",
+        "problemMatcher": []
+      },
+      {
+        "label": "PHPCS: flz_ags Security Baseline",
+        "type": "shell",
+        "command": "./scripts/phpcs-flz-ags.sh",
+        "options": { "cwd": "${workspaceFolder:Tagore WordPress Sources}" },
+        "group": "test",
+        "problemMatcher": []
+      },
+      {
+        "label": "DDEV: start tagore-local",
+        "type": "shell",
+        "command": "ddev start",
+        "options": { "cwd": "${workspaceFolder:Tagore Local Runtime}" },
+        "group": "build",
+        "problemMatcher": []
+      },
+      {
+        "label": "DDEV: describe tagore-local",
+        "type": "shell",
+        "command": "ddev describe",
+        "options": { "cwd": "${workspaceFolder:Tagore Local Runtime}" },
+        "problemMatcher": []
+      },
+      {
+        "label": "WordPress: list custom plugins",
+        "type": "shell",
+        "command": "ddev wp plugin list --fields=name,status,version",
+        "options": { "cwd": "${workspaceFolder:Tagore Local Runtime}" },
+        "problemMatcher": []
+      },
+      {
+        "label": "WordPress: list themes",
+        "type": "shell",
+        "command": "ddev wp theme list --fields=name,status,version",
+        "options": { "cwd": "${workspaceFolder:Tagore Local Runtime}" },
+        "problemMatcher": []
+      }
+    ]
+  }
+}

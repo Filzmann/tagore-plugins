@@ -1,0 +1,4 @@
+interface:
+  display_name: "Work in WordPress Extension"
+  short_description: "Safely change one Tagore plugin or theme"
+  default_prompt: "Use $work-in-wordpress-extension to inspect or change one existing Tagore WordPress component safely."

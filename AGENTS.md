@@ -1,167 +1,190 @@
-# Arbeitsregeln für KI-gestützte Entwicklung der Tagore-Plugins
+# AGENTS.md – Tagore WordPress
 
-Dieses Repository enthält ausschließlich eigene WordPress-Plugins für das Tagore-Gymnasium.
+## Zweck und Routing
 
-## Geltungsbereich
+Dieses Repository ist der gemeinsame Quell- und Steuerungs-Workspace für die
+eigenen WordPress-Plugins und -Themes des Tagore-Gymnasiums. Die lokale
+WordPress-Laufzeit bleibt getrennt unter `../tagore-local`; WordPress-Core,
+Uploads und fremde Erweiterungen gehören nicht in dieses Repository.
 
-Dieses Repository `~/projects/tagore-plugins` enthält ausschließlich eigene WordPress-Plugins für das Tagore-Gymnasium. Grundsätzlich dürfen deshalb alle Plugin-Verzeichnisse in diesem Repository bearbeitet werden, solange sie eigene Tagore-Plugins sind und die übrigen Regeln eingehalten werden.
+- Menschlicher Einstieg: `README.md`
+- Workspace und lokale Laufzeit: `docs/workspace.md`
+- Architektur und WordPress-Verträge: `docs/architecture.md`
+- Wiederholbare Abläufe: `.agents/skills/`
+- Kanonisches Komponenten-Inventar: `config/workspace-components.tsv`
+- Unverbindliche Beobachtungen: `docs/learning-candidates.md`
 
-Aktuell gehören dazu insbesondere:
+Vor Arbeit an einer bestehenden Komponente ist der Skill
+`work-in-wordpress-extension` zu verwenden. Für beobachtbare Änderungen gilt
+zusätzlich `test-driven-wordpress-change`. Neue Plugins oder Themes werden nur
+mit `create-wordpress-extension` angelegt. Workspace-Prüfungen folgen
+`verify-wordpress-workspace`.
 
-- flz_elternsprechtag
-- flz_probeunterricht
-- flz_wpdb_objects
-- flz_ags
-- flz_shortcode_redirect
-- flz_ui_components
+## Geltungsbereich und Grenzen
 
-Neue eigene Plugins dürfen in diesem Repository ergänzt werden, wenn sie der `flz_`-Namenskonvention folgen.
+- Eigener Quellcode liegt in den im Komponenten-Inventar registrierten
+  Plugin-Verzeichnissen oder unter `themes/`.
+- Neue Plugins verwenden `flz_<name>`, neue Themes `flz-<name>` als Slug.
+  Hooks, Optionen, Tabellen, REST-Routen, Nonce-Actions, Handles, PHP-Symbole
+  und Textdomains erhalten einen daraus eindeutig abgeleiteten Präfix.
+- Eigene Komponenten werden in `../tagore-local/public/wp-content/plugins`
+  beziehungsweise `themes` ausschließlich per Symlink bereitgestellt. Im
+  Laufzeitverzeichnis wird kein eigener Quellcode direkt bearbeitet.
+- Nicht bearbeitet werden WordPress-Core, fremde Plugins oder Themes,
+  Uploads, `wp-config.php`, produktive Konfigurationen, Secrets und
+  Serverkonfiguration – außer ein konkreter Auftrag nennt exakt die
+  erforderliche, zulässige Änderung.
+- Das vorhandene Fremdtheme `deep-light` und Kopien in `../tagore` sind keine
+  Quellen für eigene Theme-Entwicklung. Eine Übernahme oder Ableitung braucht
+  vorab eine Lizenz-, Herkunfts- und Scope-Entscheidung.
+- `config/workspace-components.tsv` ist die einzige manuell gepflegte Liste
+  eigener Komponenten. Workspace, Skripte und Dokumentation dürfen keine
+  konkurrierende Komponentenliste etablieren.
 
-Die Plugins aus `~/projects/tagore-plugins` müssen im eigentlichen WordPress-Plugin-Verzeichnis immer per Symlink verfügbar gemacht werden. Im WordPress-Plugin-Verzeichnis selbst werden außer dem Anlegen, Prüfen oder Entfernen dieser Symlinks keine Plugin-Dateien verändert.
+## Architektur- und Sicherheitsverträge
 
-Nicht bearbeitet werden dürfen:
+- Fachlogik, WordPress-Integration, Datenzugriff und Darstellung bleiben
+  getrennt. Templates rendern; sie autorisieren nicht und führen keine
+  komplexen Datenänderungen aus.
+- Vor neuer Infrastruktur WordPress-Core-APIs verwenden: Settings, Options,
+  Metadata, Roles/Capabilities, REST API, Cron, HTTP API, Filesystem API,
+  Transients, i18n, Theme JSON und Block APIs. Eine parallele Eigenlösung
+  braucht eine dokumentierte Begründung und Freigabe.
+- Deny by default, Least privilege und server-side first gelten für Admin,
+  REST, AJAX, Formularaktionen, Cron und WP-CLI. Sichtbarkeit in der UI erteilt
+  keine Berechtigung.
+- Eingaben möglichst am Rand validieren und mit kontextspezifischen
+  WordPress-Funktionen sanitizen. Ausgaben spät und kontextbezogen escapen.
+  Schreibende Browser-Requests brauchen Capability-Prüfung und Nonce; REST
+  braucht einen echten `permission_callback`.
+- SQL-Werte werden über `$wpdb->prepare()` oder kontrollierte Helper aus
+  `flz_wpdb_objects` gebunden. Tabellen- und Spaltennamen stammen niemals aus
+  ungeprüften Requestdaten.
+- Externe Requests verwenden die WordPress HTTP API, definierte Timeouts und
+  sichere Fehlerbehandlung. Neue externe Ziele, Telemetrie oder Übertragung
+  personenbezogener Daten brauchen vorherige Freigabe.
+- Fehler werden diagnostizierbar, datensparsam und ohne Secrets protokolliert.
+  Fachplugins verwenden vorhandene zentrale Fehlermechanismen, derzeit
+  `FlzWpdbObjectsException::log_error()`, soweit passend. Nutzermeldungen
+  enthalten keine internen Details.
+- Für jede relevante Information wird eine kanonische Quelle bestimmt.
+  Konfiguration, Rollen, Status, Schema, Versionen, Slugs und Komponentenlisten
+  werden nicht unabhängig doppelt gepflegt.
+- Gemeinsamer Code wird nur extrahiert, wenn mindestens zwei Komponenten
+  denselben semantischen Vertrag benötigen und dieser testbar ist.
+  `flz_ui_components` und `flz_wpdb_objects` bleiben kleine, stabile Grenzen;
+  Fachkomponenten greifen nicht direkt auf interne Dateien anderer
+  Fachkomponenten zu.
 
-- WordPress-Core
-- Themes
-- Fremdplugins
-- Uploads
-- produktive Konfigurationsdateien
-- wp-config.php
-- Zugangsdaten, Tokens, Secrets oder Serverkonfiguration
+## Plugin- und Theme-Verträge
 
-## Namenskonvention
+- Plugins kapseln Verhalten, Datenmodelle, Integrationen und Inhalte, die bei
+  einem Themewechsel erhalten bleiben müssen. Themes verantworten Darstellung,
+  Templates, Styles, Patterns und bewusst themegebundene Präsentationslogik.
+- Ein Theme darf keine geschäftskritischen Datenmodelle, Rollen oder
+  Workflows besitzen. Plugin-Funktionalität darf nicht vom aktiven Theme
+  abhängen; optionale Darstellungserweiterungen prüfen ihre Abhängigkeiten.
+- Classic Themes nutzen WordPress Template Hierarchy und Hooks; Block Themes
+  nutzen gültiges `theme.json`, Templates, Parts und Patterns. Die Wahl wird
+  pro Theme in dessen Dokumentation festgehalten.
+- Assets werden über `wp_enqueue_script()`, `wp_enqueue_style()` oder die
+  vorgesehenen Block-APIs registriert. Versionen werden nachvollziehbar
+  bestimmt; Inline-Code und globale CSS-Eingriffe bleiben begründet und klein.
+- Frontend-Shortcodes eigener Plugins werden bei redaktioneller Nutzung nach
+  Möglichkeit über `flz_ui_register_shortcode_block()` zusätzlich als Block
+  angeboten. Der Shortcode kann stabile Rendering-Grenze bleiben.
+- Übersetzbare UI-Texte verwenden die komponenteneigene Textdomain. Keine
+  personenbezogenen, produktiven oder erfundenen fachlichen Scheindaten in
+  Fixtures, Screenshots, Beispielen oder Dokumentation.
+- Deaktivierung eines Plugins und Wechsel eines Themes dürfen die Site nicht
+  durch ungeprüfte Funktionsaufrufe fatal beschädigen. Optionale Abhängigkeiten
+  werden defensiv geprüft und im Admin verständlich gemeldet.
 
-Die bestehende Namenskonvention `flz_` ist für eigene Entwicklungen beizubehalten.
+## Testgetriebene Änderungen und Qualität
 
-Für neue eigene Plugins, PHP-Funktionen, PHP-Klassenpräfixe, Shortcodes, Optionsnamen, Capabilities, AJAX-/REST-Actions, Cron-Hooks, CSS-/JS-Handles und Datenbanktabellen ist grundsätzlich ein `flz_`-Präfix bzw. ein eindeutig davon abgeleiteter Präfix zu verwenden.
+- Neue Funktionen, Fehlerkorrekturen und sonstige Änderungen beobachtbaren
+  Verhaltens folgen `test-driven-wordpress-change`: Invariante bestimmen,
+  passenden zunächst roten Test nachweisen, minimal implementieren,
+  Regressionen prüfen, dann refaktorieren.
+- Reine Dokumentations-, Konfigurations- oder mechanische Änderungen erhalten
+  eine passende Syntax-/Strukturprüfung statt künstlicher TDD-Tests.
+- Sicherheitsgrenzen belegen mindestens einen erlaubten und einen sinnvollen
+  verweigerten, ungültigen oder manipulierten Fall sowie das Ausbleiben
+  verbotener Nebenwirkungen.
+- PHP, JavaScript, CSS, HTML und JSON werden auf der kleinsten ehrlichen Ebene
+  geprüft. WordPress-Integration, Hooks, REST, Datenbank und Rendering werden
+  bei Bedarf in der lokalen DDEV-Instanz verifiziert.
+- Oberflächen bleiben semantisch, responsiv, per Tastatur bedienbar, mit
+  sichtbaren Fokuszuständen und verständlichen Labels/Fehlern. Bedeutung wird
+  nicht nur über Farbe, Hover oder Zeigerinteraktion vermittelt.
+- Für neuen oder wesentlich geänderten ausführbaren Code werden 85 Prozent
+  Line-Coverage angestrebt. Sicherheitsinvarianten müssen unabhängig von der
+  Quote vollständig abgedeckt sein.
 
-Das AG-Plugin heißt `flz_ags`. Für AG-bezogene neue Namen gelten `flz_ags`, `flz_ag_*` und `flz-ags` als verbindliche Konvention. Alte Namen wie `tagore-ags`, `tagore_ags`, `tg_ag_*` oder `tg-ag` sind nicht weiterzuverwenden. Falls solche Namen lokal oder auf Staging noch vorkommen, gelten sie als Altbestand der Umbenennung und sollen gezielt entfernt oder migriert werden.
+## Persistenz, Updates und Datenschutz
 
-## Entwicklungsprinzip
+- Vor persistenten Änderungen Zustände, Vorbedingungen, Zielzustand,
+  Nebenwirkungen, Wiederholbarkeit, Fehlerfälle und Nebenläufigkeit bestimmen.
+- Schemaänderungen verwenden versionierte, idempotente Upgradepfade. Bereits
+  ausgelieferte Migrationen werden nicht rückwirkend geändert. Frische
+  Installation und Upgrade mit synthetischen Bestandsdaten werden geprüft.
+- Destruktive Deinstallation ist von Deaktivierung getrennt und löscht Daten
+  nur nach dokumentierter Produktentscheidung und ausdrücklicher Zustimmung.
+- Personenbezogene Daten werden minimiert, zweckgebunden und mit geklärten
+  Aufbewahrungs-, Auskunfts- und Löschpfaden verarbeitet. Logs und Tests sind
+  keine Ablage für Echtdaten.
 
-Änderungen erfolgen lokal in DDEV. Danach wird getestet. Erst danach darf ein Transfer nach Staging vorbereitet werden. Production wird nie direkt geändert.
+## Lokale Laufzeit und Delivery
 
-## Demo- und Seed-Daten
+- DDEV wird ausschließlich aus `../tagore-local` gesteuert. Zustandsändernde
+  DDEV-, WordPress-, WP-CLI-, Datenbank-, Aktivierungs-, Import- oder
+  Bereinigungsbefehle brauchen einen konkreten Auftrag oder eine ausdrückliche
+  Freigabe.
+- Lokale Pfade, Benutzer, URLs und Zugangsdaten sind keine Produktionsannahmen.
+  Jeder Wechsel zu Staging oder Produktion ist eine ausdrücklich benannte
+  Umgebungsgrenze.
+- Produktionssysteme werden nie direkt geändert. Staging-Deployments bleiben
+  trocken, bis `--apply` ausdrücklich beauftragt ist. Theme-Delivery benötigt
+  einen eigenen geprüften Pfad; das vorhandene Plugin-Deployskript ist dafür
+  nicht zu verwenden.
+- Eine lokale Lieferung ist erst verifiziert, wenn Symlink, WP-CLI-Status,
+  relevante Tests, Assets und die sichtbare Oberfläche geprüft wurden.
 
-Demo-, Test- und Seed-Daten sollen bevorzugt aus lokal vorhandenen, verwalteten WordPress-Strukturen oder Plugin-Daten abgeleitet werden, z. B. aus bestehenden Seiten, Beiträgen, Optionen oder Modelltabellen.
+## Stop-Regeln
 
-Keine harten Demo-Listen aus externen Produktions-URLs, kopierten Live-Daten oder frei erfundenen fachlichen Platzhaltern verwenden, wenn die Daten lokal aus der WordPress-Struktur gewonnen werden können.
+Wenn der Auftrag den Risikobereich nicht bereits ausdrücklich umfasst, vor
+der Umsetzung Risiko, Dateien, Tests und Rückbau nennen und Freigabe einholen
+bei:
 
-Falls Demo-Daten nicht zuverlässig ableitbar sind, müssen fehlende Felder klar leer bleiben oder als nicht verfügbar behandelt werden, statt fachliche Scheindaten zu erzeugen.
+- Datenbankschema, Migrationen oder bestehenden Daten;
+- Rollen, Capabilities, Nonces, Authentifizierung oder Zugriffsschutz;
+- öffentlichen Verträgen gemeinsamer Plugins oder mehreren Komponenten;
+- Uploads, Dateipfaden, Downloads oder Dokumenterzeugung;
+- Aktivierung, Themewechsel, Datenimport, DDEV-/WordPress-Konfiguration;
+- neuen Produktionsabhängigkeiten oder externen Diensten;
+- Löschung, Umbenennung, größerer Verschiebung oder breitem Refactoring;
+- unklarem Rollback oder konkurrierenden Quellen ohne geklärte Autorität.
 
-## Sicherheitsregeln für WordPress-Code
+Sofort stoppen, wenn Produktionszugriff, Git-Historienumschreibung, Verlust
+fachlicher Regeln oder Änderungen außerhalb des Auftrags nötig würden.
 
-Bei jeder Änderung sind zu prüfen:
+## Learning Candidates
 
-- Eingaben mit sanitize_text_field(), sanitize_email(), absint(), wp_kses_post() oder passenden Alternativen bereinigen.
-- Ausgaben mit esc_html(), esc_attr(), esc_url(), wp_kses_post() oder passenden Alternativen escapen.
-- Admin-Aktionen mit current_user_can() absichern.
-- Formularaktionen und AJAX/REST-Endpunkte mit Nonces absichern.
-- Datenbankzugriffe über $wpdb->prepare() oder kontrollierte interne Helper aus flz_wpdb_objects.
-- Keine SQL-Strings aus ungeprüften Request-Daten bauen.
-- Keine Secrets in Dateien schreiben.
-- Keine externen Requests einbauen, ohne sie explizit zu dokumentieren.
+Beobachtungen werden nicht automatisch zu Regeln. Wiederverwendbare,
+belegbare Kandidaten werden mit `evaluate-learning-candidate` klassifiziert
+und bis zur ausdrücklichen Entscheidung nur in
+`docs/learning-candidates.md` geführt.
 
-## Besondere Regel für flz_wpdb_objects
+## Git und Definition of Done
 
-flz_wpdb_objects ist ein gemeinsames Hilfsplugin. Änderungen daran können flz_elternsprechtag, flz_probeunterricht und weitere eigene Plugins betreffen.
-
-Jede Änderung an flz_wpdb_objects braucht deshalb:
-
-- kurze Begründung
-- Liste der betroffenen abhängigen Plugins
-- Rückwärtskompatibilitätsprüfung
-- Migrationshinweis, falls Datenbankstruktur oder API geändert wird
-
-## Gemeinsame Best Practices
-
-Bei Refactorings, Sicherheitsarbeiten, UI-Zentralisierung und wiederkehrenden
-Fehlerbildern ist aktiv zu prüfen, ob daraus eine allgemeine Best Practice für
-die eigenen Tagore-Plugins entsteht. Solche Erkenntnisse sollen nicht nur lokal
-im betroffenen Plugin umgesetzt, sondern dem Nutzer kurz zur Aufnahme in diese
-`AGENTS.md` vorgeschlagen werden. Nach ausdrücklicher Zustimmung werden sie hier
-als gemeinsame Arbeitsregel dokumentiert.
-
-Frontend-Shortcodes eigener Plugins sollen, wenn sie redaktionell in Seiten
-eingefügt werden, zusätzlich über `flz_ui_register_shortcode_block()` aus
-`flz_ui_components` als Gutenberg-Block registriert werden. Der Shortcode darf
-als stabile Rendering-Grenze bestehen bleiben; neue oder gepflegte Seiten sollen
-aber bevorzugt den Block verwenden.
-
-Technische Fehlerketten eigener Plugins sollen zentral über
-`flz_wpdb_objects\FlzWpdbObjectsException::log_error()` protokolliert werden.
-Sichtbare Fehlermeldungen bleiben Aufgabe des jeweiligen Fachplugins und müssen
-sicher, knapp und ohne interne Details formuliert sein.
-
-Fachplugins sollen Controller-/Service-Logik, Datenmodelle und Templates klar
-trennen. Größere HTML-Blöcke gehören in `templates/`, Backend-spezifische
-Koordination in `backend/`, Frontend-spezifische Koordination in `frontend/`.
-Wiederkehrende UI-, CSV-, Tabellen-, Formular- oder Datenbankmuster sind zuerst
-auf Wiederverwendbarkeit in `flz_ui_components` bzw. `flz_wpdb_objects` zu
-prüfen, statt sie erneut im Fachplugin zu duplizieren.
-
-## Arbeitsweise
-
-Vor jeder größeren Änderung:
-
-1. Neuen Git-Branch anlegen.
-2. Änderung klein halten.
-3. Nach der Änderung Tests/Checks ausführen.
-4. Geänderte Dateien nennen.
-5. Zweck, Risiko und Teststand zusammenfassen.
-
-## Lokale Test- und DDEV-Regeln
-
-Das Plugin-Repository `~/projects/tagore-plugins` ist kein DDEV-Projekt. Dort liegt keine `.ddev/config.yaml`.
-
-Die lokale WordPress-/DDEV-Instanz liegt unter:
-
-`~/projects/tagore-local`
-
-DDEV-Befehle wie `ddev start`, `ddev wp`, `ddev exec` oder `ddev composer` müssen deshalb immer aus `~/projects/tagore-local` heraus ausgeführt werden, sofern nicht ausdrücklich ein anderer DDEV-Projektpfad genannt wird.
-
-Codeänderungen erfolgen im Plugin-Repository:
-
-`~/projects/tagore-plugins`
-
-Die Standardprüfungen für dieses Repo werden aus dem Plugin-Repository gestartet:
-
-```bash
-cd ~/projects/tagore-plugins
-./scripts/phpcs-flz-ags.sh
-./scripts/check-local.sh
-```
-
-Wenn DDEV nicht läuft, zuerst starten mit:
-
-```bash
-cd ~/projects/tagore-local
-ddev start
-```
-
-Danach zurück ins Plugin-Repository und die Checks erneut ausführen:
-
-```bash
-cd ~/projects/tagore-plugins
-./scripts/phpcs-flz-ags.sh
-./scripts/check-local.sh
-```
-
-Für neue Tests gilt: Testdateien und Testskripte im Plugin-Repository anlegen, aber WordPress-, WP-CLI-, Composer- oder PHPUnit-Befehle, die eine WordPress-/DDEV-Umgebung brauchen, über die DDEV-Instanz `~/projects/tagore-local` ausführen.
-
-## Codex-Commit-Regel
-
-Codex darf Git-Commits nur nach ausdrücklicher Freigabe durch den Nutzer erstellen.
-
-Vor einem Commit muss Codex anzeigen:
-
-- `git status --short`
-- `git diff --stat`
-- die konkret zu committenden Dateien
-- die vorgeschlagene Commit-Message
-
-Codex darf nur ausdrücklich benannte Dateien stagen. `git add .` ist nicht erlaubt, außer der Nutzer verlangt es ausdrücklich.
-
-Wenn weitere uncommitted Changes existieren, müssen Commits fachlich getrennt bleiben.
-
-Codex darf nicht pushen und nicht auf Staging oder Produktion deployen, außer der Nutzer verlangt dies ausdrücklich.
+- Vor größeren Änderungen einen fachlich benannten Branch verwenden.
+- Keine Commits, Pushes oder Deployments ohne ausdrückliche Freigabe; niemals
+  `git add .` verwenden. Bestehende fremde Änderungen bleiben unangetastet.
+- Vor einem Commit `git status --short`, `git diff --stat` und
+  `git diff --name-only` zeigen und nur benannte Dateien stagen.
+- Mindestens `scripts/check-fast` und die relevanten Komponenten-/DDEV-Checks
+  ausführen. Ein nicht ausgeführter Laufzeitcheck wird als Nachweislücke
+  benannt, nicht als bestanden dargestellt.
+- Der Abschlussbericht nennt Scope, geänderte Dateien, Prüfungen und
+  Ergebnisse, ausgelassene Prüfungen mit Grund, Risiken, Learning Candidates
+  und finalen Git-Status. Kein Commit ist Teil der Definition of Done.

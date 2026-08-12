@@ -1,26 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PLUGIN_REPO="/home/filzmann/projects/tagore-plugins"
-DDEV_PROJECT="/home/filzmann/projects/tagore-local"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+DDEV_PROJECT="$(cd "$ROOT_DIR/../tagore-local" && pwd)"
 
-cd "$PLUGIN_REPO"
+cd "$ROOT_DIR"
 
-echo "=== Git status ==="
-git status --short
+echo "=== Fast source checks ==="
+./scripts/check-fast
 
 echo
-echo "=== PHP syntax check ==="
-find \
-  flz_elternsprechtag \
-  flz_probeunterricht \
-  flz_wpdb_objects \
-  flz_shortcode_redirect \
-  flz_ags \
-  flz_ui_components \
-  -type f -name '*.php' \
-  -print0 \
-  | xargs -0 -n1 php -l
+echo "=== Runtime symlinks ==="
+./scripts/link-local-components
 
 echo
 echo "=== DDEV status ==="
@@ -28,13 +19,22 @@ cd "$DDEV_PROJECT"
 ddev describe
 
 echo
-echo "=== WordPress own plugin status ==="
+echo "=== Registered custom plugins ==="
+plugin_pattern="$(awk -F '\t' '$2 == "plugin" { print $3 }' "$ROOT_DIR/config/workspace-components.tsv" | paste -sd '|' -)"
 ddev wp plugin list --fields=name,status,version --format=table \
-  | grep -E 'name|flz_|flz_ags'
+	| grep -E "name|${plugin_pattern}"
+
+theme_pattern="$(awk -F '\t' '$2 == "theme" { print $3 }' "$ROOT_DIR/config/workspace-components.tsv" | paste -sd '|' -)"
+if [[ -n "$theme_pattern" ]]; then
+	echo
+	echo "=== Registered custom themes ==="
+	ddev wp theme list --fields=name,status,version --format=table \
+		| grep -E "name|${theme_pattern}"
+fi
 
 echo
 echo "=== HTTP status ==="
 curl -kI https://tagore-local.ddev.site | sed -n '1,10p'
 
 echo
-echo "OK: local checks completed."
+echo "OK: local WordPress checks completed."

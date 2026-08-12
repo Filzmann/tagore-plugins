@@ -1,0 +1,4 @@
+interface:
+  display_name: "Verify WordPress Workspace"
+  short_description: "Verify structure, components, and local runtime"
+  default_prompt: "Use $verify-wordpress-workspace to verify the Tagore WordPress workspace at the appropriate depth."
