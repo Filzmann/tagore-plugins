@@ -116,9 +116,10 @@ Die Suche in aktuellem Dateibaum und Git-Historie ergab keine zusätzlichen
 - alter und neuer Dateibaum pro Plugin sind inhaltlich identisch;
 - neuer Git-Log enthält alle komponentenrelevanten Commits;
 - jeder Repo-Schnellcheck und vorhandene Smoke-Test besteht isoliert;
-- Abhängigkeits-Contract-Tests bestehen für installierte, fehlende, zu alte und
-  verspätet geladene Provider;
-- Inventar und Workspace-Scripts finden alle sieben Repositories relativ und
+- statische Abhängigkeits-Smokes belegen Mindestversionen, verzögerten Bootstrap
+  und das Fehlen direkter Nachbar-Includes; die Laufzeitfälle fehlender, zu alter
+  und verspätet geladener Provider bleiben bis zum DDEV-Test offen;
+- Inventar und Workspace-Scripts finden alle sechs aktuellen Repositories relativ und
   führen keine konkurrierende Komponentenliste;
 - Laufzeit-Symlinks zeigen exakt auf die neuen Repositories;
 - **Offen:** DDEV/WP-CLI erkennt Version und Status jeder Komponente; Docker
