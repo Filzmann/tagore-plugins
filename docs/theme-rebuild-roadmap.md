@@ -41,6 +41,11 @@ Lizenz, tatsächlicher Bedarf und Attribution dateibezogen geklärt sind.
 4. Festhalten, welche Deep-Light-Spezialtemplates tatsächlich genutzt werden.
    Ungenutzte Course-, Gallery-, Portfolio-, Sermon- oder Page-Builder-Templates
    werden nicht nachgebaut.
+5. Die aktuelle DDEV-Baseline enthält bereits PHP-Warnungen aus `deep`,
+   `deepcore` und weiteren Fremdkomponenten, darunter zu frühes Laden von
+   Übersetzungen und dynamische Redux-Eigenschaften. Diese Warnungen als
+   Ablösekriterium dokumentieren, aber nicht durch Änderungen an Fremdcode
+   kaschieren.
 
 ## Priorität 2 – minimaler Aufbau
 

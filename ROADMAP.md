@@ -81,9 +81,9 @@ folgt aus dieser Prüfung ausdrücklich nicht.
 
 ## P3 – Delivery und kontinuierliche Qualität
 
-1. PHPCS ohne zwingende laufende DDEV-Instanz ausführbar machen und die
-   Sicherheitsbaseline für alle sechs Plugins in `scripts/check-fast`
-   integrieren.
+1. **Erledigt:** PHPCS/WPCS ist pro Repository reproduzierbar installiert,
+   ohne laufende DDEV-Instanz ausführbar und für alle sechs Plugins in
+   `scripts/check-fast` integriert.
 2. Coverage für neuen oder wesentlich geänderten ausführbaren Code messen und
    die angestrebten 85 Prozent nachweisen; Sicherheitsinvarianten unabhängig
    von der Quote vollständig testen.

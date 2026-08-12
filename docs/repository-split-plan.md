@@ -117,13 +117,14 @@ Die Suche in aktuellem Dateibaum und Git-Historie ergab keine zusätzlichen
 - neuer Git-Log enthält alle komponentenrelevanten Commits;
 - jeder Repo-Schnellcheck und vorhandene Smoke-Test besteht isoliert;
 - statische Abhängigkeits-Smokes belegen Mindestversionen, verzögerten Bootstrap
-  und das Fehlen direkter Nachbar-Includes; die Laufzeitfälle fehlender, zu alter
-  und verspätet geladener Provider bleiben bis zum DDEV-Test offen;
+  und das Fehlen direkter Nachbar-Includes; der normale Laufzeitfall mit allen
+  aktiven Providern ist in DDEV verifiziert, Negativfälle mit fehlenden, zu alten
+  oder verspätet geladenen Providern bleiben offen;
 - Inventar und Workspace-Scripts finden alle sechs aktuellen Repositories relativ und
   führen keine konkurrierende Komponentenliste;
 - Laufzeit-Symlinks zeigen exakt auf die neuen Repositories;
-- **Offen:** DDEV/WP-CLI erkennt Version und Status jeder Komponente; Docker
-  steht in der aktuellen Umgebung nicht zur Verfügung.
+- DDEV/WP-CLI erkennt alle sechs Komponenten als aktiv und die lokale Website
+  antwortet per HTTPS mit Status 200;
 - kein Commit, Push, Themewechsel oder Deployment erfolgt implizit.
 
 ## Rückbau

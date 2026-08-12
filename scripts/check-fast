@@ -9,13 +9,13 @@ echo "=== Workspace structure ==="
 
 echo
 echo "=== Component repositories ==="
-while IFS=$'\t' read -r path kind slug _runtime_link; do
+while IFS=$'\t' read -r path kind slug _runtime_link <&3; do
 	[[ "$path" == "path" ]] && continue
 	[[ "$kind" == "plugin" || "$kind" == "theme" ]] || continue
 	echo
 	echo "--- $slug ---"
 	"$ROOT_DIR/$path/scripts/check-fast"
-done < config/workspace-components.tsv
+done 3< config/workspace-components.tsv
 
 echo
 echo "=== Diff hygiene ==="
