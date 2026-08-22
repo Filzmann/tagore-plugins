@@ -39,6 +39,7 @@ for executable in \
 done
 php -l "$workspace/tests/coverage/merge-clover.php" >/dev/null
 php -l "$workspace/tests/coverage/execute-component-smoke.php" >/dev/null
+require_text "$workspace/scripts/measure-component-php-coverage" 'php -d output_buffering=16384'
 
 fixture_directory="$workspace/tests/fixtures/coverage"
 passing="$(php "$workspace/tests/coverage/merge-clover.php" fixture "$fixture_directory" 50.00)"

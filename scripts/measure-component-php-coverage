@@ -50,7 +50,8 @@ for test_file in "${tests[@]}"; do
 	done
 	command+=(--add-uncovered "$wrapper")
 	echo "> Coverage: ${test_file#"$repo/"}"
-	TAGORE_COVERAGE_TEST="$test_file" XDEBUG_MODE=coverage "${command[@]}"
+	TAGORE_COVERAGE_TEST="$test_file" XDEBUG_MODE=coverage \
+		php -d output_buffering=16384 "${command[@]}"
 done
 
 summary="$(php "$workspace/tests/coverage/merge-clover.php" "$slug" "$output")"
