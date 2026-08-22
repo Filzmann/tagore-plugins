@@ -22,6 +22,7 @@ required=(
 	"config/quality-gates.tsv"
 	"scripts/check-quality-gates"
 	"tests/check-quality-gates.sh"
+	"tests/check-ci-contract.sh"
 	".codex/config.toml"
 	".codex/agents/explorer.toml"
 	".codex/agents/reviewer.toml"

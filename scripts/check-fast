@@ -18,6 +18,10 @@ echo "=== Quality-gate contract ==="
 bash tests/check-quality-gates.sh
 
 echo
+echo "=== CI contract ==="
+bash tests/check-ci-contract.sh
+
+echo
 echo "=== Component repositories ==="
 while IFS=$'\t' read -r path kind slug _runtime_link <&3; do
 	[[ "$path" == "path" ]] && continue

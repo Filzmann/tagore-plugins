@@ -11,7 +11,7 @@ wenn ihre Nachweise im eigenen Repository grün sind.
 - komponentenlokale, ausfüllbare Abnahmeprotokolle vorbereiten;
 - Release-Gate bis zur vollständigen Übernahme technisch blockieren.
 
-Status: mit diesem Rollout-Schritt umgesetzt.
+Status: umgesetzt.
 
 ## Phase 1 – Reproduzierbare Komponenten-CI
 
@@ -30,8 +30,11 @@ Je Komponente:
   und sicherem `main`-Fallback;
 - verpflichtende Lizenz und Changelog.
 
-Danach wechseln `ci_gate` und – soweit alle übrigen Commitbedingungen erfüllt
-sind – `commit_gate` auf `enforced`.
+Lokaler Status: umgesetzt. Die Workflows, Lizenzen, Changelogs und
+Provider-/Consumer-Verträge sind strukturell geprüft; `ci_gate` steht deshalb
+auf `configured`. Erst ein grüner Remote-Lauf nach einem ausdrücklich
+autorisierten Push darf auf `enforced` hochstufen. `commit_gate` bleibt wegen
+der noch nicht gemessenen Coverage-Baselines auf `transition`.
 
 ## Phase 2 – Coverage-Baseline und No-Regression
 

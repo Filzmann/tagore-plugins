@@ -11,6 +11,12 @@ unverifiziertes Pflichtgate wird übersprungen.
 schrittweisen Übernahme. Die Komponentenmenge wird weiterhin ausschließlich
 aus `config/workspace-components.tsv` abgeleitet und dagegen geprüft.
 
+Beim CI-Gate bedeutet `pending`, dass der Vertrag noch fehlt. `configured`
+bedeutet, dass Workflow und lokaler Strukturtest vollständig vorliegen, aber
+noch kein grüner Remote-Lauf für den betreffenden Stand belegt ist. Erst ein
+erfolgreicher Pull-Request- oder `main`-Lauf darf den Status auf `enforced`
+setzen. Release- und normales Commit-Gate akzeptieren nur `enforced`.
+
 ## Commit-Gate
 
 Vor jedem normalen Komponenten-Commit sind erforderlich:

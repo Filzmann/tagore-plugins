@@ -1,0 +1,92 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  workspace:
+    name: Workspace-Vertrag
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Workspace auschecken
+        uses: actions/checkout@v7
+        with:
+          path: workspace
+      - name: Komponenten-Referenzen bestimmen
+        id: component-refs
+        env:
+          CANDIDATE_REF: ${{ github.head_ref || github.ref_name }}
+        run: |
+          for repository in \
+            flz_wpdb_objects \
+            flz_ui_components \
+            flz_shortcode_redirect \
+            flz_elternsprechtag \
+            flz_probeunterricht \
+            flz_ags; do
+            if git ls-remote --exit-code --heads "https://github.com/Filzmann/$repository.git" "refs/heads/$CANDIDATE_REF" >/dev/null 2>&1; then
+              echo "$repository=$CANDIDATE_REF" >> "$GITHUB_OUTPUT"
+            else
+              echo "$repository=main" >> "$GITHUB_OUTPUT"
+            fi
+          done
+      - name: flz_wpdb_objects auschecken
+        uses: actions/checkout@v7
+        with:
+          repository: Filzmann/flz_wpdb_objects
+          ref: ${{ steps.component-refs.outputs.flz_wpdb_objects }}
+          path: workspace/repositories/flz_wpdb_objects
+      - name: flz_ui_components auschecken
+        uses: actions/checkout@v7
+        with:
+          repository: Filzmann/flz_ui_components
+          ref: ${{ steps.component-refs.outputs.flz_ui_components }}
+          path: workspace/repositories/flz_ui_components
+      - name: flz_shortcode_redirect auschecken
+        uses: actions/checkout@v7
+        with:
+          repository: Filzmann/flz_shortcode_redirect
+          ref: ${{ steps.component-refs.outputs.flz_shortcode_redirect }}
+          path: workspace/repositories/flz_shortcode_redirect
+      - name: flz_elternsprechtag auschecken
+        uses: actions/checkout@v7
+        with:
+          repository: Filzmann/flz_elternsprechtag
+          ref: ${{ steps.component-refs.outputs.flz_elternsprechtag }}
+          path: workspace/repositories/flz_elternsprechtag
+      - name: flz_probeunterricht auschecken
+        uses: actions/checkout@v7
+        with:
+          repository: Filzmann/flz_probeunterricht
+          ref: ${{ steps.component-refs.outputs.flz_probeunterricht }}
+          path: workspace/repositories/flz_probeunterricht
+      - name: flz_ags auschecken
+        uses: actions/checkout@v7
+        with:
+          repository: Filzmann/flz_ags
+          ref: ${{ steps.component-refs.outputs.flz_ags }}
+          path: workspace/repositories/flz_ags
+      - name: PHP einrichten
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+      - name: Gesperrte Entwicklungsabhängigkeiten installieren
+        run: |
+          for repository in workspace/repositories/flz_*; do
+            composer install --working-dir="$repository" --no-interaction --no-progress --prefer-dist
+          done
+      - name: Workspace und alle Komponenten prüfen
+        working-directory: workspace
+        run: ./scripts/check-fast

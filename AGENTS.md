@@ -130,6 +130,9 @@ mit `create-wordpress-extension` angelegt. Workspace-Prüfungen folgen
 - Normale Produktcommits sind während `commit_gate=transition` blockiert. Nur
   ausdrücklich beauftragte, eng begrenzte Quality-Rollout-Commits dürfen die
   fehlenden CI-, Coverage-, Abnahme- und Delivery-Gates herstellen.
+- `ci_gate=configured` bestätigt nur den lokal geprüften Workflow-Vertrag.
+  Erst ein grüner Remote-Lauf für den betroffenen Stand erlaubt
+  `ci_gate=enforced`; ein Release bleibt vorher technisch blockiert.
 
 ## Persistenz, Updates und Datenschutz
 
