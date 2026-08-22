@@ -71,8 +71,8 @@ while IFS=$'\t' read -r path kind slug _runtime_link; do
 		_js_target _js_baseline _js_gate _acceptance _archive _release <<< "$row"
 	[[ "$php_baseline" =~ ^[0-9]+([.][0-9]+)?$ ]] \
 		|| fail "PHP-Coverage-Baseline ist für $slug nicht numerisch konfiguriert."
-	[[ "$php_gate" == 'configured' || "$php_gate" == 'enforced' ]] \
-		|| fail "PHP-Coverage-Gate ist für $slug noch nicht konfiguriert."
+	[[ "$php_gate" == 'enforced' ]] \
+		|| fail "PHP-Coverage-Gate ist für $slug nicht enforced."
 done < "$inventory"
 
 for slug in flz_ui_components flz_ags; do
@@ -87,6 +87,8 @@ for slug in flz_ui_components flz_ags; do
 		'measure-component-js-coverage'; do
 		require_text "$workflow" "$text"
 	done
+	js_gate="$(awk -F '\t' -v slug="$slug" '$1 == slug { print $10; exit }' "$workspace/config/quality-gates.tsv")"
+	[[ "$js_gate" == 'enforced' ]] || fail "JavaScript-Coverage-Gate ist für $slug nicht enforced."
 done
 
 for slug in flz_wpdb_objects flz_shortcode_redirect flz_elternsprechtag flz_probeunterricht; do

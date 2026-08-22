@@ -49,15 +49,14 @@ for slug in "${slugs[@]}"; do
 
 	require_text "$repo/LICENSE" 'SPDX-License-Identifier: GPL-2.0-or-later'
 	require_text "$repo/CHANGELOG.md" '## Unreleased'
-	require_text "$repo/AGENTS.md" 'Übernahmestand ist Phase 1'
+	require_text "$repo/AGENTS.md" 'Übernahmestand ist Phase 2'
 	require_text "$repo/docs/manual-acceptance.md" '| PR-/`main`-CI / PHP 8.1 und 8.5 |'
 
 	read -r phase ci_gate < <(
 		awk -F '\t' -v slug="$slug" '$1 == slug { print $2, $4; exit }' "$quality_config"
 	)
-	[[ "$phase" == '1' ]] || fail "Quality-Phase für $slug ist nicht 1: $phase"
-	[[ "$ci_gate" == 'configured' || "$ci_gate" == 'enforced' ]] \
-		|| fail "CI-Gate für $slug ist weder configured noch enforced: $ci_gate"
+	[[ "$phase" == '2' ]] || fail "Quality-Phase für $slug ist nicht 2: $phase"
+	[[ "$ci_gate" == 'enforced' ]] || fail "CI-Gate für $slug ist nicht enforced: $ci_gate"
 done
 
 for slug in flz_elternsprechtag flz_probeunterricht flz_ags; do

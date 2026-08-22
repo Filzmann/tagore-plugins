@@ -53,6 +53,11 @@ for slug in "${slugs[@]}"; do
 		|| fail "README für $slug verweist nicht auf das Abnahmeprotokoll."
 	grep -Fq 'Release-Gate in' "$workspace/repositories/$slug/ROADMAP.md" \
 		|| fail "Roadmap für $slug weist die Release-Blockade nicht aus."
+	commit_gate="$(awk -F '\t' -v slug="$slug" '$1 == slug { print $3; exit }' "$quality_config")"
+	[[ "$commit_gate" == 'enforced' ]] || fail "Commit-Gate ist für $slug nicht enforced."
+	if ! bash "$gate" --commit "$slug" >/dev/null; then
+		fail "Commit-Gate ist für $slug nicht ausführbar grün."
+	fi
 
 	if bash "$gate" --release "$slug" >"$release_output" 2>&1; then
 		fail "Noch nicht vollständig übernommener Release-Gate wurde für $slug freigegeben."

@@ -34,8 +34,7 @@ Status: umgesetzt und remote belegt. Die Draft-PRs aller sechs Komponenten
 sowie des Workspaces sind am 22. August 2026 einschließlich PHP 8.1/8.5,
 Komponenten-Smokes, JavaScript, Provider-/Consumer-Verträgen und Workspace-
 Vertrag grün gelaufen. `ci_gate` steht deshalb für alle Komponenten auf
-`enforced`. `commit_gate` bleibt bis zum grünen Wiederholungslauf gegen die
-neu konfigurierten PHP-Baselines auf `transition`.
+`enforced`.
 
 ## Phase 2 – Coverage-Baseline und No-Regression
 
@@ -57,14 +56,22 @@ für `flz_shortcode_redirect`, 10,69 Prozent für `flz_elternsprechtag`,
 JavaScript ist mit 54,05 Prozent für `flz_ui_components` und 41,46 Prozent für
 `flz_ags` remote belegt und deshalb `enforced`.
 
-Die PHP-Ratschen stehen zunächst auf `configured`: Der erste Lauf hat die
-ehrlichen Werte bestimmt, aber noch nicht gegen diese Werte blockiert. Erst
-ein grüner Wiederholungslauf mit der aktualisierten Gate-Konfiguration setzt
-`php_gate`, `commit_gate` und `adoption_phase` auf `enforced`, `enforced` und
-`2`. Lokales Xdebug fehlt weiterhin; dies ist nach dem Remote-Nachweis keine
+Status: umgesetzt und remote belegt. Nach der ersten Messung wurden die
+Baselines als aktive Ratschen konfiguriert; ein zweiter Lauf aller sechs
+Komponenten war einschließlich PHP- und JavaScript-Coverage sowie der
+Provider-/Consumer-Jobs grün. `php_gate`, die anwendbaren `js_gate` und
+`commit_gate` stehen deshalb auf `enforced`, die Komponenten auf
+`adoption_phase=2`. Das Ziel 85 Prozent bleibt zusätzlich bestehen und wird
+durch die Bestandsratschen nicht abgesenkt.
+
+Lokales Xdebug fehlt weiterhin; dies ist nach den zwei Remote-Nachweisen keine
 Baseline-Lücke mehr, bleibt aber als lokale Ausführungslücke transparent.
 
 ## Phase 3 – Testlücken und manuelle Abnahme
+
+Status: ausstehend. Für alle sechs Komponenten liegen vollständige, leere
+Abnahmeprotokolle vor; `acceptance=prepared` bedeutet ausdrücklich noch keine
+fachliche oder visuelle Abnahme.
 
 - Altcode schrittweise auf mindestens 85 Prozent Line-Coverage anheben;
 - Sicherheits-, Datenschutz-, Migrations-, Parallelitäts- und
