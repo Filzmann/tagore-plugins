@@ -49,8 +49,8 @@ Erst nach reproduzierbarer Messung darf `php_gate` beziehungsweise `js_gate`
 auf `enforced` wechseln.
 
 Zwischenstand: Das zentral gepinnte PHPCOV-/c8-Tooling und die Xdebug-Jobs sind
-remote reproduzierbar grün. Die gemessenen PHP-Baselines sind 54,99 Prozent
-für `flz_wpdb_objects`, 54,34 Prozent für `flz_ui_components`, zunächst 65,09 Prozent
+remote reproduzierbar grün. Die gemessenen PHP-Baselines sind 58,18 Prozent
+für `flz_wpdb_objects`, 54,34 Prozent für `flz_ui_components`, zunächst 65,09 und inzwischen 99,06 Prozent
 für `flz_shortcode_redirect`, 10,69 Prozent für `flz_elternsprechtag`,
 8,16 Prozent für `flz_probeunterricht` und 16,34 Prozent für `flz_ags`.
 JavaScript ist mit 54,05 Prozent für `flz_ui_components` und 41,46 Prozent für
