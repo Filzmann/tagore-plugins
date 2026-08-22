@@ -54,7 +54,7 @@ for test_file in "${tests[@]}"; do
 		php -d output_buffering=16384 "${command[@]}"
 done
 
-summary="$(php "$workspace/tests/coverage/merge-clover.php" "$slug" "$output")"
+summary="$(TAGORE_COVERAGE_DETAILS=1 php "$workspace/tests/coverage/merge-clover.php" "$slug" "$output")"
 echo "$summary"
 percent="$(awk -F '\t' 'NR == 1 { print $4 }' <<< "$summary")"
 "$workspace/scripts/check-coverage-baseline" "$slug" php "$percent"

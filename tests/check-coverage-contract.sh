@@ -44,6 +44,9 @@ require_text "$workspace/scripts/measure-component-php-coverage" 'php -d output_
 fixture_directory="$workspace/tests/fixtures/coverage"
 passing="$(php "$workspace/tests/coverage/merge-clover.php" fixture "$fixture_directory" 50.00)"
 [[ "$passing" == $'fixture\t2\t1\t50.00' ]] || fail 'Exakt erreichte PHP-Coverage-Baseline wird nicht akzeptiert.'
+details="$(TAGORE_COVERAGE_DETAILS=1 php "$workspace/tests/coverage/merge-clover.php" fixture "$fixture_directory")"
+grep -Fqx $'DETAIL\tfixture\tsynthetic/example.php\t2\t1\t50.00\t2' <<< "$details" \
+	|| fail 'PHP-Coverage-Diagnose weist ungetestete Zeilen nicht stabil aus.'
 if php "$workspace/tests/coverage/merge-clover.php" fixture "$fixture_directory" 50.01 >/dev/null 2>&1; then
 	fail 'PHP-Coverage-Rückgang wird nicht blockiert.'
 fi

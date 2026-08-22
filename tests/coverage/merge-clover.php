@@ -2,6 +2,33 @@
 
 declare(strict_types=1);
 
+/**
+ * @param list<int> $numbers
+ */
+function flz_coverage_format_ranges(array $numbers): string
+{
+	if (array() === $numbers) {
+		return '-';
+	}
+
+	sort($numbers, SORT_NUMERIC);
+	$ranges = array();
+	$start  = $numbers[0];
+	$end    = $start;
+	foreach (array_slice($numbers, 1) as $number) {
+		if ($number === $end + 1) {
+			$end = $number;
+			continue;
+		}
+		$ranges[] = $start === $end ? (string) $start : $start . '-' . $end;
+		$start    = $number;
+		$end      = $number;
+	}
+	$ranges[] = $start === $end ? (string) $start : $start . '-' . $end;
+
+	return implode(',', $ranges);
+}
+
 if ($argc !== 3 && $argc !== 4) {
 	fwrite(STDERR, "Aufruf: php merge-clover.php <Slug> <Clover-Verzeichnis> [Mindest-Coverage]\n");
 	exit(2);
@@ -58,6 +85,31 @@ foreach ($lines as $file_lines) {
 
 $percent = 0 === $executable ? 0.0 : ($covered / $executable) * 100;
 printf("%s\t%d\t%d\t%.2f\n", $slug, $executable, $covered, $percent);
+
+if ('1' === getenv('TAGORE_COVERAGE_DETAILS')) {
+	ksort($lines, SORT_STRING);
+	foreach ($lines as $path => $file_lines) {
+		ksort($file_lines, SORT_NUMERIC);
+		$file_executable = count($file_lines);
+		$file_covered    = count(array_filter($file_lines, static fn(int $count): bool => $count > 0));
+		$file_percent    = 0 === $file_executable ? 0.0 : ($file_covered / $file_executable) * 100;
+		$uncovered       = array_keys(array_filter($file_lines, static fn(int $count): bool => 0 === $count));
+		$normalized_path = str_replace('\\', '/', $path);
+		$slug_position   = strrpos($normalized_path, '/' . $slug . '/');
+		$display_path    = false === $slug_position
+			? ltrim($normalized_path, '/')
+			: substr($normalized_path, $slug_position + 1);
+		printf(
+			"DETAIL\t%s\t%s\t%d\t%d\t%.2f\t%s\n",
+			$slug,
+			$display_path,
+			$file_executable,
+			$file_covered,
+			$file_percent,
+			flz_coverage_format_ranges($uncovered)
+		);
+	}
+}
 
 if (null !== $minimum && round($percent, 2) < $minimum) {
 	fwrite(
