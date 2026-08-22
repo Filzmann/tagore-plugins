@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+workspace="$(cd "$(dirname "$0")/.." && pwd)"
+
+fail() {
+	echo "ERROR: $*" >&2
+	exit 1
+}
+
+[[ $# -eq 4 ]] \
+	|| fail 'Aufruf: scripts/measure-component-php-coverage <slug> <Repository> <phpcov> <Ausgabeverzeichnis>'
+slug="$1"
+repo="$(realpath "$2")"
+phpcov="$(realpath "$3")"
+output="$4"
+
+[[ -d "$repo" ]] || fail "Repository fehlt: $repo"
+[[ -x "$phpcov" ]] || fail "phpcov ist nicht ausführbar: $phpcov"
+[[ "$(basename "$repo")" == "$slug" ]] || fail "Slug und Repository passen nicht zusammen: $slug / $repo"
+awk -F '\t' -v slug="$slug" -v path="repositories/$slug" \
+	'NR > 1 && $1 == path && $3 == slug { found=1 } END { exit !found }' \
+	"$workspace/config/workspace-components.tsv" || fail "Komponente ist nicht kanonisch registriert: $slug"
+php -r 'exit(extension_loaded("xdebug") ? 0 : 1);' \
+	|| fail 'PHP-Coverage benötigt Xdebug; die lokale Messung wurde nicht als bestanden markiert.'
+
+mkdir -p "$output"
+if find "$output" -mindepth 1 -print -quit | grep -q .; then
+	fail "Coverage-Ausgabeverzeichnis ist nicht leer: $output"
+fi
+
+mapfile -d '' -t sources < <(
+	find "$repo" \
+		-path "$repo/.git" -prune -o \
+		-path "$repo/vendor" -prune -o \
+		-path "$repo/tests" -prune -o \
+		-path "$repo/build" -prune -o \
+		-type f -name '*.php' -print0 | sort -z
+)
+mapfile -d '' -t tests < <(find "$repo/tests" -maxdepth 1 -type f -name '*-smoke.php' -print0 | sort -z)
+(( ${#sources[@]} > 0 )) || fail "Keine PHP-Produktdateien für $slug gefunden."
+(( ${#tests[@]} > 0 )) || fail "Keine PHP-Smoke-Tests für $slug gefunden."
+
+wrapper="$workspace/tests/coverage/execute-component-smoke.php"
+for test_file in "${tests[@]}"; do
+	report="$output/$(basename "${test_file%-smoke.php}").xml"
+	command=("$phpcov" execute --clover "$report")
+	for source in "${sources[@]}"; do
+		command+=(--include "$source")
+	done
+	command+=(--add-uncovered "$wrapper")
+	echo "> Coverage: ${test_file#"$repo/"}"
+	TAGORE_COVERAGE_TEST="$test_file" XDEBUG_MODE=coverage \
+		php -d output_buffering=16384 "${command[@]}"
+done
+
+summary="$(TAGORE_COVERAGE_DETAILS=1 php "$workspace/tests/coverage/merge-clover.php" "$slug" "$output")"
+echo "$summary"
+percent="$(awk -F '\t' 'NR == 1 { print $4 }' <<< "$summary")"
+"$workspace/scripts/check-coverage-baseline" "$slug" php "$percent"

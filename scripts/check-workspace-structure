@@ -9,6 +9,17 @@ fail() {
 	exit 1
 }
 
+file_matches() {
+	local pattern="$1"
+	local file="$2"
+
+	if command -v rg >/dev/null 2>&1; then
+		rg -q "$pattern" "$file"
+	else
+		grep -Eq "$pattern" "$file"
+	fi
+}
+
 required=(
 	"AGENTS.md"
 	"README.md"
@@ -17,6 +28,16 @@ required=(
 	"docs/architecture.md"
 	"docs/workspace.md"
 	"docs/learning-candidates.md"
+	"docs/quality-gates.md"
+	"docs/quality-rollout.md"
+	"config/quality-gates.tsv"
+	"scripts/check-quality-gates"
+	"scripts/build-component-release"
+	"scripts/verify-component-release"
+	"tests/check-quality-gates.sh"
+	"tests/check-ci-contract.sh"
+	"tests/check-coverage-contract.sh"
+	"tests/check-release-contract.sh"
 	".codex/config.toml"
 	".codex/agents/explorer.toml"
 	".codex/agents/reviewer.toml"
@@ -59,7 +80,7 @@ while IFS=$'\t' read -r path kind slug runtime_link; do
 			[[ "$runtime_link" == "plugins/$slug" ]] || fail "invalid plugin runtime link: $runtime_link"
 			main_file="$ROOT_DIR/$path/$slug.php"
 			[[ -f "$main_file" ]] || fail "plugin bootstrap missing: $path/$slug.php"
-			rg -q 'Plugin Name:' "$main_file" || fail "Plugin Name header missing: $path/$slug.php"
+			file_matches 'Plugin Name:' "$main_file" || fail "Plugin Name header missing: $path/$slug.php"
 			[[ -f "$ROOT_DIR/$path/AGENTS.md" ]] || fail "plugin rules missing: $path/AGENTS.md"
 			[[ -d "$ROOT_DIR/$path/.git" ]] || fail "plugin is not an independent Git repository: $path"
 			[[ -x "$ROOT_DIR/$path/scripts/check-fast" ]] || fail "plugin check missing: $path/scripts/check-fast"
@@ -69,7 +90,7 @@ while IFS=$'\t' read -r path kind slug runtime_link; do
 			[[ "$path" == "repositories/$slug" ]] || fail "theme path and slug differ: $path / $slug"
 			[[ "$runtime_link" == "themes/$slug" ]] || fail "invalid theme runtime link: $runtime_link"
 			[[ -f "$ROOT_DIR/$path/style.css" ]] || fail "theme style.css missing: $path"
-			rg -q 'Theme Name:' "$ROOT_DIR/$path/style.css" || fail "Theme Name header missing: $path/style.css"
+			file_matches 'Theme Name:' "$ROOT_DIR/$path/style.css" || fail "Theme Name header missing: $path/style.css"
 			[[ -f "$ROOT_DIR/$path/AGENTS.md" ]] || fail "theme rules missing: $path/AGENTS.md"
 			[[ -d "$ROOT_DIR/$path/.git" ]] || fail "theme is not an independent Git repository: $path"
 			[[ -x "$ROOT_DIR/$path/scripts/check-fast" ]] || fail "theme check missing: $path/scripts/check-fast"
@@ -77,6 +98,8 @@ while IFS=$'\t' read -r path kind slug runtime_link; do
 		*) fail "unknown component kind '$kind' for $path" ;;
 	esac
 done < "$INVENTORY"
+
+bash "$ROOT_DIR/scripts/check-quality-gates" --policy
 
 for plugin_dir in "$ROOT_DIR"/repositories/flz_*; do
 	[[ -d "$plugin_dir" ]] || continue
@@ -91,9 +114,9 @@ for theme_dir in "$ROOT_DIR"/repositories/flz-*; do
 done
 
 for skill_file in "$ROOT_DIR"/.agents/skills/*/SKILL.md; do
-	rg -q '^name: [a-z0-9-]+$' "$skill_file" || fail "invalid skill name: $skill_file"
-	rg -q '^description: .+' "$skill_file" || fail "skill description missing: $skill_file"
-	if rg -q '\[TODO|TODO:' "$skill_file"; then
+	file_matches '^name: [a-z0-9-]+$' "$skill_file" || fail "invalid skill name: $skill_file"
+	file_matches '^description: .+' "$skill_file" || fail "skill description missing: $skill_file"
+	if file_matches '\[TODO|TODO:' "$skill_file"; then
 		fail "unfinished skill template: $skill_file"
 	fi
 done

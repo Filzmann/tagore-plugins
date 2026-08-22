@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+fail() {
+	echo "ERROR: $*" >&2
+	exit 1
+}
+
+[[ $# -eq 3 ]] \
+	|| fail 'Aufruf: scripts/verify-component-release <slug> <Repository> <Arbeitsverzeichnis>'
+slug="$1"
+repo="$(realpath "$2")"
+work="$3"
+workspace="$(cd "$(dirname "$0")/.." && pwd)"
+
+[[ -x "$repo/scripts/build-release" ]] || fail "Komponenten-Builder fehlt: $repo/scripts/build-release"
+[[ ! -e "$work" ]] || fail "Release-Prüfverzeichnis existiert bereits: $work"
+mkdir -p "$work"
+work="$(realpath "$work")"
+
+TAGORE_WORDPRESS_WORKSPACE="$workspace" "$repo/scripts/build-release" "$work/first"
+TAGORE_WORDPRESS_WORKSPACE="$workspace" "$repo/scripts/build-release" "$work/second"
+diff -qr "$work/first" "$work/second" >/dev/null \
+	|| fail "Zwei Releasebauten sind nicht bytegleich: $slug"
+(
+	cd "$work/first"
+	sha256sum --check SHA256SUMS >/dev/null
+)
+
+echo "Release-Artefakt-Verifikation: OK ($slug)"

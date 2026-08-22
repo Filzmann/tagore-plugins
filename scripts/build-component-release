@@ -1,0 +1,151 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+workspace="$(cd "$(dirname "$0")/.." && pwd)"
+inventory="$workspace/config/workspace-components.tsv"
+
+fail() {
+	echo "ERROR: $*" >&2
+	exit 1
+}
+
+[[ $# -eq 3 ]] \
+	|| fail 'Aufruf: scripts/build-component-release <slug> <Repository> <Ausgabeverzeichnis>'
+slug="$1"
+repo="$(realpath "$2")"
+output="$3"
+source_date_epoch="${SOURCE_DATE_EPOCH:-315532800}"
+
+[[ "$slug" =~ ^flz_[a-z0-9_]+$ ]] || fail "Ungültiger Plugin-Slug: $slug"
+[[ -d "$repo" && "$(basename "$repo")" == "$slug" ]] \
+	|| fail "Repository und Slug passen nicht zusammen: $repo / $slug"
+awk -F '\t' -v slug="$slug" -v path="repositories/$slug" \
+	'NR > 1 && $1 == path && $2 == "plugin" && $3 == slug { found=1 } END { exit !found }' \
+	"$inventory" || fail "Plugin ist nicht kanonisch registriert: $slug"
+[[ "$source_date_epoch" =~ ^[0-9]+$ && "$source_date_epoch" -ge 315532800 ]] \
+	|| fail 'SOURCE_DATE_EPOCH muss eine Ganzzahl ab 1980-01-01 sein.'
+
+for command in awk cmp find git grep realpath sed sha256sum sort tar touch unzip zip; do
+	command -v "$command" >/dev/null 2>&1 || fail "Erforderlicher Befehl fehlt: $command"
+done
+
+main_file="$repo/$slug.php"
+for required in "$main_file" "$repo/README.md" "$repo/LICENSE" "$repo/CHANGELOG.md" "$repo/docs/manual-acceptance.md"; do
+	[[ -f "$required" ]] || fail "Releasepflichtdatei fehlt: ${required#"$repo/"}"
+done
+
+version="$(sed -n -E 's/^[[:space:]]*(\*[[:space:]]*)?Version:[[:space:]]*([^[:space:]]+).*$/\2/p' "$main_file" | head -n 1)"
+[[ "$version" =~ ^[0-9]+[.][0-9]+[.][0-9]+([+-][0-9A-Za-z.-]+)?$ ]] \
+	|| fail "Ungültige oder fehlende Plugin-Version in $slug.php: $version"
+grep -Fq "## $version" "$repo/CHANGELOG.md" \
+	|| fail "CHANGELOG.md enthält keinen Abschnitt für Version $version."
+
+git -C "$repo" rev-parse --is-inside-work-tree >/dev/null 2>&1 \
+	|| fail "Kein Git-Repository: $repo"
+[[ -z "$(git -C "$repo" status --porcelain --untracked-files=all)" ]] \
+	|| fail "Releasebau braucht ein sauberes Repository: $slug"
+commit="$(git -C "$repo" rev-parse HEAD)"
+[[ "$commit" =~ ^[0-9a-f]{40}$ ]] || fail "Keine vollständige Git-Commit-ID für $slug."
+
+if [[ -e "$output" ]]; then
+	[[ -d "$output" && -z "$(find "$output" -mindepth 1 -print -quit)" ]] \
+		|| fail "Release-Ausgabeverzeichnis ist nicht leer: $output"
+else
+	mkdir -p "$output"
+fi
+output="$(realpath "$output")"
+
+temporary="$(mktemp -d)"
+cleanup() {
+	rm -rf "$temporary"
+}
+trap cleanup EXIT
+stage="$temporary/stage"
+mkdir -p "$stage/$slug"
+
+tar -C "$repo" \
+	--exclude='./.git' \
+	--exclude='./.github' \
+	--exclude='./.agents' \
+	--exclude='./.codex' \
+	--exclude='./.editorconfig' \
+	--exclude='./.gitattributes' \
+	--exclude='./.gitignore' \
+	--exclude='./.env' \
+	--exclude='./.env.*' \
+	--exclude='./AGENTS.md' \
+	--exclude='./ROADMAP.md' \
+	--exclude='./composer.json' \
+	--exclude='./composer.lock' \
+	--exclude='./phpcs.xml.dist' \
+	--exclude='./scripts' \
+	--exclude='./tests' \
+	--exclude='./vendor' \
+	--exclude='./node_modules' \
+	--exclude='./build' \
+	--exclude='./dist' \
+	--exclude='./coverage' \
+	--exclude='*.bak' \
+	--exclude='*.dump' \
+	--exclude='*.log' \
+	--exclude='*.pem' \
+	--exclude='*.key' \
+	--exclude='*.sql' \
+	--exclude='*.sqlite*' \
+	-cf - . | tar -C "$stage/$slug" -xf -
+
+if find "$stage/$slug" -type l -print -quit | grep -q .; then
+	fail "Symlink im Releaseinhalt gefunden: $slug"
+fi
+for required in "$slug/$slug.php" "$slug/README.md" "$slug/LICENSE" "$slug/CHANGELOG.md" "$slug/docs/manual-acceptance.md"; do
+	[[ -f "$stage/$required" ]] || fail "Releasepflichtdatei wurde nicht paketiert: $required"
+done
+if find "$stage/$slug" -type f \( \
+	-name '.env' -o -name '.env.*' -o -name 'wp-config.php' -o \
+	-name '*.bak' -o -name '*.dump' -o -name '*.key' -o -name '*.log' -o \
+	-name '*.pem' -o -name '*.sql' -o -name '*.sqlite' -o -name '*.sqlite3' \
+	\) -print -quit | grep -q .; then
+	fail "Verbotene Datei im Releaseinhalt gefunden: $slug"
+fi
+if grep -RIlE \
+	'(/home/[^/[:space:]]+|/Users/[^/[:space:]]+|BEGIN (EC |OPENSSH |RSA )?PRIVATE KEY|AWS_SECRET_ACCESS_KEY|GITHUB_TOKEN=)' \
+	"$stage/$slug" | grep -q .; then
+	fail "Lokaler Pfad oder Secret-Muster im Releaseinhalt gefunden: $slug"
+fi
+
+find "$stage/$slug" -type d -exec chmod 0755 {} +
+find "$stage/$slug" -type f -exec chmod 0644 {} +
+TZ=UTC find "$stage/$slug" -exec touch -h -d "@$source_date_epoch" {} +
+
+file_list="$temporary/file-list"
+(
+	cd "$stage"
+	LC_ALL=C find "$slug" -print | LC_ALL=C sort > "$file_list"
+)
+while IFS= read -r entry; do
+	[[ "$entry" =~ ^[A-Za-z0-9._/+@-]+$ ]] \
+		|| fail "Nicht reproduzierbarer Releasepfad: $entry"
+done < "$file_list"
+
+archive_name="$slug-$version.zip"
+archive="$output/$archive_name"
+(
+	cd "$stage"
+	TZ=UTC zip -X -q -9 "$archive" -@ < "$file_list"
+)
+unzip -tq "$archive" >/dev/null || fail "ZIP-Integritätsprüfung fehlgeschlagen: $archive_name"
+mapfile -t roots < <(unzip -Z1 "$archive" | cut -d/ -f1 | LC_ALL=C sort -u)
+[[ "${#roots[@]}" -eq 1 && "${roots[0]}" == "$slug" ]] \
+	|| fail "Releasearchiv verletzt den Ein-Wurzel-Vertrag: $archive_name"
+
+hash="$(sha256sum "$archive" | cut -d' ' -f1)"
+printf 'slug\tversion\tgit_commit\tarchive\tsha256\n' > "$output/manifest.tsv"
+printf '%s\t%s\t%s\t%s\t%s\n' "$slug" "$version" "$commit" "$archive_name" "$hash" \
+	>> "$output/manifest.tsv"
+printf '%s  %s\n' "$hash" "$archive_name" > "$output/SHA256SUMS"
+(
+	cd "$output"
+	sha256sum --check SHA256SUMS >/dev/null
+)
+
+echo "Release-Artefakt erstellt: $archive"

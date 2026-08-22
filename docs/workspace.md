@@ -48,6 +48,12 @@ nicht über ein persönliches Home-Verzeichnis zum Projektvertrag gemacht.
 und Theme-Header. Neue Komponenten werden mit dem Skill
 `create-wordpress-extension` registriert.
 
+`config/quality-gates.tsv` ist keine zweite Komponentenliste, sondern die
+gegen das Inventar geprüfte Zustandsprojektion für Commit-, CI-, Coverage-,
+Abnahme- und Release-Gates. Fehlende oder zusätzliche Zeilen blockieren den
+Workspace-Check. Zielvertrag und Übernahmephasen stehen in
+`docs/quality-gates.md` und `docs/quality-rollout.md`.
+
 Plugins heißen `flz_<name>`; Theme-Slugs heißen `flz-<name>`. Ein eigenes
 Theme wird als `repositories/<slug>` entwickelt und nicht aus dem installierten
 Fremdtheme `deep-light` heraus verändert.
@@ -74,8 +80,14 @@ Prüfpfade:
 ./scripts/check-workspace-structure # deklarative Struktur
 ./scripts/check-fast                # Struktur, JSON, PHP-Syntax, Git-Diff
 ./scripts/check-local.sh            # DDEV, WP-CLI, Symlinks und HTTP
+./scripts/check-quality-gates --policy
+./scripts/check-quality-gates --commit <slug>
+./scripts/check-quality-gates --release <slug>
 ```
 
 Der lokale Integrationscheck setzt laufendes DDEV voraus. Ein erfolgreicher
 Schnellcheck ersetzt keine Browser-, Accessibility- oder echte
-WordPress-Integrationsprüfung.
+WordPress-Integrationsprüfung. Während der gestuften Übernahme blockieren
+`--commit` normale Produktcommits und `--release` jede Releasefreigabe, bis die
+jeweilige Komponenten-Konfiguration alle Pflichtnachweise als erzwungen
+ausweist.

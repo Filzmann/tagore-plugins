@@ -11,6 +11,9 @@ und das geplante Theme des Tagore-Gymnasiums.
 4. Eigene Komponenten per Symlink in `../tagore-local` bereitstellen.
 5. Vor Abschluss `./scripts/check-fast` und bei Laufzeitänderungen
    `./scripts/check-local.sh` ausführen.
+6. Commit- und Releasebereitschaft über den verbindlichen
+   [Quality-Gate-Vertrag](docs/quality-gates.md) und
+   `config/quality-gates.tsv` prüfen.
 
 Jedes Plugin unter `repositories/<slug>/` besitzt eine eigene Git-Historie,
 Regeln, Roadmap und Prüfwerkzeuge. Das geplante Theme erhält ebenfalls ein
@@ -18,4 +21,5 @@ eigenes Repository. WordPress-Core, Fremderweiterungen und Uploads bleiben in
 der getrennten lokalen Laufzeit.
 
 Weitere Details: [Workspace](docs/workspace.md),
-[Architektur](docs/architecture.md) und [Agentenregeln](AGENTS.md).
+[Architektur](docs/architecture.md),
+[Quality-Rollout](docs/quality-rollout.md) und [Agentenregeln](AGENTS.md).

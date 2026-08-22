@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+workspace="$(cd "$(dirname "$0")/.." && pwd)"
+quality_config="$workspace/config/quality-gates.tsv"
+
+fail() {
+	echo "ERROR: $*" >&2
+	exit 1
+}
+
+[[ $# -eq 3 ]] || fail 'Aufruf: scripts/check-coverage-baseline <slug> <php|js> <gemessene Prozent>'
+slug="$1"
+language="$2"
+measured="$3"
+
+[[ "$language" == 'php' || "$language" == 'js' ]] || fail "Unbekannte Coverage-Sprache: $language"
+[[ "$measured" =~ ^[0-9]+([.][0-9]+)?$ ]] || fail "Ungültige gemessene Coverage: $measured"
+awk -v value="$measured" 'BEGIN { exit !(value >= 0 && value <= 100) }' \
+	|| fail "Gemessene Coverage liegt außerhalb 0 bis 100: $measured"
+
+row="$(awk -F '\t' -v slug="$slug" '$1 == slug { print; exit }' "$quality_config")"
+[[ -n "$row" ]] || fail "Unbekannte Komponente: $slug"
+IFS=$'\t' read -r _slug _phase _commit _ci php_target php_baseline php_gate js_target js_baseline js_gate _acceptance _archive _release <<< "$row"
+
+if [[ "$language" == 'php' ]]; then
+	target="$php_target"
+	baseline="$php_baseline"
+	gate="$php_gate"
+else
+	target="$js_target"
+	baseline="$js_baseline"
+	gate="$js_gate"
+fi
+
+[[ "$gate" != 'not-applicable' && "$target" != 'n/a' ]] \
+	|| fail "$slug besitzt kein $language-Coverage-Gate."
+
+if [[ "$baseline" == 'pending' ]]; then
+	printf '%s %s: %.2f %% gemessen; Baseline ist noch pending, daher noch kein Gate.\n' \
+		"$slug" "$language" "$measured"
+	exit 0
+fi
+
+awk -v measured="$measured" -v baseline="$baseline" 'BEGIN { exit !(measured + 0.000001 >= baseline) }' \
+	|| fail "$slug $language-Coverage $measured % unterschreitet die Baseline $baseline %."
+
+printf '%s %s-Coverage: %.2f %% (Baseline %s %%, Ziel %s %%, Gate %s)\n' \
+	"$slug" "$language" "$measured" "$baseline" "$target" "$gate"
