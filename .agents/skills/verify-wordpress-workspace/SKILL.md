@@ -14,9 +14,13 @@ description: Verify the Tagore WordPress source workspace, registered plugins/th
   and HTTP after confirming runtime commands are authorized.
 - `component`: add the target component's own tests and relevant shared
   provider/consumer tests.
-- `release`: require a clean tree, component-specific packaging and explicit
-  deployment authorization. Never treat the plugin staging script as theme
-  delivery.
+- `commit`: run `scripts/check-quality-gates --commit <slug>`; during the
+  documented transition this deliberately blocks normal product commits until
+  the component's CI and coverage adoption is complete.
+- `release`: run `scripts/check-quality-gates --release <slug>` first. Require
+  clean repositories, accepted manual protocol, enforced coverage/CI and a
+  reproducible component-specific artifact. Never treat a diagnostic run or
+  the plugin staging script as a release verdict or theme delivery.
 
 ## Procedure
 
@@ -30,6 +34,9 @@ description: Verify the Tagore WordPress source workspace, registered plugins/th
    privacy, require focused allow/deny evidence.
 5. For UI/theme work, report automated structure separately from browser,
    keyboard, responsive, contrast and visual evidence.
+6. A release check that reports `RELEASE BLOCKIERT` remains blocked; do not
+   bypass it with a Fast-/Local-Check or reinterpret a transition commit as a
+   release candidate.
 
 ## Verdict
 

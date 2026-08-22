@@ -11,12 +11,15 @@ Die komponentenübergreifende Prüfung von Demo- und Beispieldaten ist in
 
 ## Gesamturteil
 
-**Release-Candidate-Stand ohne offene P0-Befunde.** Struktur, PHP-Syntax,
+**Funktionaler Härtungsstand ohne offene P0-Befunde; Delivery-Gates noch
+blockiert.** Struktur, PHP-Syntax,
 PHPCS und alle Komponenten-Smokes bestehen. Datenschutz, nichtdestruktive
 Deaktivierung, geschützte Exporte, additive Migrationen und zentrale
 Nebenläufigkeitsinvarianten sind umgesetzt und lokal mit WordPress/DDEV
-verifiziert. Vor stabilen Releases bleiben Browser-/Screenreader-Abnahme, echte
-parallele HTTP-Prozesse und reproduzierbare Release-Artefakte nachzuweisen.
+verifiziert. Nach dem verbindlich übernommenen BR-starken Qualitätsvertrag sind
+CI, gemessene No-Regression-Coverage, ausgefüllte Abnahmeprotokolle und
+reproduzierbare Release-Artefakte noch schrittweise nachzuweisen. Bis dahin ist
+keine Komponente als Release Candidate freigegeben.
 
 ## P0 – Repository-Trennung als Arbeitsgrundlage
 
@@ -81,11 +84,15 @@ parallele HTTP-Prozesse und reproduzierbare Release-Artefakte nachzuweisen.
 1. **Erledigt:** PHPCS/WPCS ist pro Repository reproduzierbar installiert,
    ohne laufende DDEV-Instanz ausführbar und für alle sechs Plugins in
    `scripts/check-fast` integriert.
-2. Coverage für neuen oder wesentlich geänderten ausführbaren Code messen und
-   die angestrebten 85 Prozent nachweisen; Sicherheitsinvarianten unabhängig
-   von der Quote vollständig testen.
-3. Pro Plugin ein reproduzierbares Release-Artefakt ohne Nachbarkomponenten,
-   Tests, lokale Konfiguration oder Entwicklungsabhängigkeiten verifizieren.
+2. **Vertrag und Rollout konfiguriert:** PHP-/JavaScript-Coverage getrennt
+   messen, die erste ehrliche Baseline gegen Rückgang sperren und Altcode
+   schrittweise auf 85 Prozent anheben. Neuer oder wesentlich geänderter Code
+   erreicht sofort mindestens 85 Prozent; Sicherheitsinvarianten bleiben
+   vollständig abzudecken.
+3. **Phase 0 erledigt:** Komponentenlokale Abnahmeprotokolle und ein strikt
+   blockierendes Release-Vorgate sind vorbereitet. CI, Messwerkzeuge,
+   ausgefüllte Abnahmen und reproduzierbare Ein-Wurzel-Artefakte folgen
+   komponentenweise gemäß `docs/quality-rollout.md`.
 
 ## Reihenfolge und Abhängigkeiten
 

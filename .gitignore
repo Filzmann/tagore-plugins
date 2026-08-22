@@ -28,7 +28,10 @@ vendor/
 
 # Test / coverage
 coverage/
+build/
+dist/
 .phpunit.result.cache
+.quality-release-test.out
 
 # Local reports
 reports/

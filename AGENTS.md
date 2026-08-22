@@ -13,6 +13,9 @@ Uploads und fremde Erweiterungen gehören nicht in dieses Repository.
 - Wiederholbare Abläufe: `.agents/skills/`
 - Kanonisches Komponenten-Inventar: `config/workspace-components.tsv`
 - Unverbindliche Beobachtungen: `docs/learning-candidates.md`
+- Commit-, Coverage- und Releasevertrag: `docs/quality-gates.md`
+- Gestufte Übernahme: `docs/quality-rollout.md`
+- Maschinenlesbarer Gate-Status: `config/quality-gates.tsv`
 
 Vor Arbeit an einer bestehenden Komponente ist der Skill
 `work-in-wordpress-extension` zu verwenden. Für beobachtbare Änderungen gilt
@@ -120,6 +123,13 @@ mit `create-wordpress-extension` angelegt. Workspace-Prüfungen folgen
 - Für neuen oder wesentlich geänderten ausführbaren Code werden 85 Prozent
   Line-Coverage angestrebt. Sicherheitsinvarianten müssen unabhängig von der
   Quote vollständig abgedeckt sein.
+- PHP- und JavaScript-Coverage werden getrennt gemessen. Sobald eine ehrliche
+  Baseline pro Komponente festgelegt ist, darf sie nicht unbemerkt sinken und
+  wird nur angehoben. Eine Absenkung braucht ausdrückliche Entscheidung,
+  Begründung und Rückgewinnungsplan.
+- Normale Produktcommits sind während `commit_gate=transition` blockiert. Nur
+  ausdrücklich beauftragte, eng begrenzte Quality-Rollout-Commits dürfen die
+  fehlenden CI-, Coverage-, Abnahme- und Delivery-Gates herstellen.
 
 ## Persistenz, Updates und Datenschutz
 
@@ -149,6 +159,17 @@ mit `create-wordpress-extension` angelegt. Workspace-Prüfungen folgen
   nicht zu verwenden.
 - Eine lokale Lieferung ist erst verifiziert, wenn Symlink, WP-CLI-Status,
   relevante Tests, Assets und die sichtbare Oberfläche geprüft wurden.
+- Ein Fast-, Diagnose- oder Quellcheck ist kein Releaseurteil. Ein Release
+  benötigt den grünen strikten Pfad
+  `scripts/check-quality-gates --release <slug>` für den exakten Commit.
+- Release-Repositorys sind sauber; Archive sind reproduzierbar, besitzen genau
+  eine Komponentenwurzel, Manifest und SHA-256 und enthalten keine Git-,
+  Agenten-, Test-, Cache-, lokale oder geheime Dateien sowie keine Symlinks.
+  Installation, Upgrade, Deaktivierung, Datenschutz, sichtbare UI und Rückbau
+  werden aus dem exakten Artefakt geprüft.
+- Bauen, Signieren, Taggen, Pushen, Publizieren, Staging und Produktion bleiben
+  getrennte Freigabegrenzen. Kein rotes oder nicht ausgeführtes Pflichtgate
+  wird durch eine Freigabeerzählung ersetzt.
 
 ## Stop-Regeln
 
@@ -182,9 +203,16 @@ und bis zur ausdrücklichen Entscheidung nur in
   `git add .` verwenden. Bestehende fremde Änderungen bleiben unangetastet.
 - Vor einem Commit `git status --short`, `git diff --stat` und
   `git diff --name-only` zeigen und nur benannte Dateien stagen.
+- Vor einem normalen Komponenten-Commit zusätzlich
+  `scripts/check-quality-gates --commit <slug>` ausführen. Die im Rolloutplan
+  dokumentierte Übergangsausnahme gilt nur für ausdrücklich beauftragte
+  Quality-Infrastruktur-Commits.
 - Mindestens `scripts/check-fast` und die relevanten Komponenten-/DDEV-Checks
   ausführen. Ein nicht ausgeführter Laufzeitcheck wird als Nachweislücke
   benannt, nicht als bestanden dargestellt.
 - Der Abschlussbericht nennt Scope, geänderte Dateien, Prüfungen und
   Ergebnisse, ausgelassene Prüfungen mit Grund, Risiken, Learning Candidates
   und finalen Git-Status. Kein Commit ist Teil der Definition of Done.
+- Kein Tag oder Release wird empfohlen oder erstellt, solange der konfigurierte
+  `release_gate` nicht `ready` ist und das lokale Abnahmeprotokoll keine
+  dokumentierte Gesamtentscheidung enthält.

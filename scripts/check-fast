@@ -4,8 +4,18 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+echo "=== Workspace shell syntax ==="
+while IFS= read -r script; do
+	bash -n "$script"
+done < <(find scripts tests -type f \( -name '*.sh' -o -name 'check-*' \) | sort)
+echo "Shell syntax: OK"
+
 echo "=== Workspace structure ==="
 ./scripts/check-workspace-structure
+
+echo
+echo "=== Quality-gate contract ==="
+bash tests/check-quality-gates.sh
 
 echo
 echo "=== Component repositories ==="

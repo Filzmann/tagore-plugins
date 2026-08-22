@@ -1,0 +1,7 @@
+slug	adoption_phase	commit_gate	ci_gate	php_target_percent	php_baseline_percent	php_gate	js_target_percent	js_baseline_percent	js_gate	acceptance	release_archive	release_gate
+flz_wpdb_objects	0	transition	pending	85	pending	baseline-pending	n/a	n/a	not-applicable	prepared	pending	blocked
+flz_ui_components	0	transition	pending	85	pending	baseline-pending	85	pending	baseline-pending	prepared	pending	blocked
+flz_shortcode_redirect	0	transition	pending	85	pending	baseline-pending	n/a	n/a	not-applicable	prepared	pending	blocked
+flz_elternsprechtag	0	transition	pending	85	pending	baseline-pending	n/a	n/a	not-applicable	prepared	pending	blocked
+flz_probeunterricht	0	transition	pending	85	pending	baseline-pending	n/a	n/a	not-applicable	prepared	pending	blocked
+flz_ags	0	transition	pending	85	pending	baseline-pending	85	pending	baseline-pending	prepared	pending	blocked

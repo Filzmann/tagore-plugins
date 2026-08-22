@@ -17,6 +17,11 @@ required=(
 	"docs/architecture.md"
 	"docs/workspace.md"
 	"docs/learning-candidates.md"
+	"docs/quality-gates.md"
+	"docs/quality-rollout.md"
+	"config/quality-gates.tsv"
+	"scripts/check-quality-gates"
+	"tests/check-quality-gates.sh"
 	".codex/config.toml"
 	".codex/agents/explorer.toml"
 	".codex/agents/reviewer.toml"
@@ -77,6 +82,8 @@ while IFS=$'\t' read -r path kind slug runtime_link; do
 		*) fail "unknown component kind '$kind' for $path" ;;
 	esac
 done < "$INVENTORY"
+
+bash "$ROOT_DIR/scripts/check-quality-gates" --policy
 
 for plugin_dir in "$ROOT_DIR"/repositories/flz_*; do
 	[[ -d "$plugin_dir" ]] || continue

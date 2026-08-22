@@ -29,6 +29,11 @@ For a Classic Theme, create `repositories/<slug>/style.css`, `functions.php`,
 `AGENTS.md` and `tests/`. Add only assets and template parts required by the
 concrete request.
 
+Every component also starts with `LICENSE`, `CHANGELOG.md`,
+`docs/manual-acceptance.md`, a lockfile-backed CI plan and an explicit
+85-percent PHP coverage target; executable JavaScript adds a separate
+85-percent target. Initial unknown coverage is marked `pending`, never invented.
+
 Initialize the component directory as its own Git repository on `main`. The
 local `AGENTS.md` must be self-contained because the coordinator's root rules
 do not apply inside that repository; preserve the same safety and verification
@@ -38,17 +43,23 @@ contracts without relying on an unavailable parent rule.
 
 1. Add exactly one row to `config/workspace-components.tsv` with source type,
    slug and expected relative runtime link.
-2. Do not hand-maintain a second component list.
-3. Plan the symlink into `../tagore-local/public/wp-content/plugins/` or
+2. Add exactly one matching transition row to `config/quality-gates.tsv`.
+   This configuration is checked against the canonical component inventory and
+   must begin with `release_gate=blocked` until CI, measured coverage, manual
+   acceptance and reproducible packaging are enforced.
+3. Do not hand-maintain another component inventory.
+4. Plan the symlink into `../tagore-local/public/wp-content/plugins/` or
    `themes/`. Run `scripts/link-local-components` only when local runtime
    mutation is explicitly authorized; never overwrite a real directory or an
    unexpected link.
-4. Do not activate the plugin, switch the theme, import data or change DDEV
+5. Do not activate the plugin, switch the theme, import data or change DDEV
    merely as part of scaffolding without explicit authorization.
 
 ## Verify
 
 - Run the component's initial header/structure tests and PHP/JSON syntax.
+- Run `scripts/check-quality-gates --policy`; a normal commit/release is not
+  ready while the component remains in transition.
 - Run `scripts/check-workspace-structure` and `scripts/check-fast`.
 - If runtime work is authorized, verify link, WP-CLI recognition, assets and
   visible UI. Theme switching is a separate state-changing step.

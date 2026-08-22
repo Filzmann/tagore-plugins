@@ -1,0 +1,139 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+workspace="$(cd "$(dirname "$0")/.." && pwd)"
+inventory="$workspace/config/workspace-components.tsv"
+quality_config="$workspace/config/quality-gates.tsv"
+mode="${1:---policy}"
+requested_slug="${2:-}"
+
+fail() {
+	echo "ERROR: $*" >&2
+	exit 1
+}
+
+usage() {
+	echo 'Verwendung: scripts/check-quality-gates --policy | --commit <slug> | --release <slug>' >&2
+	exit 2
+}
+
+[[ "$mode" == '--policy' || "$mode" == '--commit' || "$mode" == '--release' ]] || usage
+if [[ "$mode" == '--policy' ]]; then
+	[[ $# -eq 1 ]] || usage
+else
+	[[ $# -eq 2 && -n "$requested_slug" ]] || usage
+fi
+
+expected_header=$'slug\tadoption_phase\tcommit_gate\tci_gate\tphp_target_percent\tphp_baseline_percent\tphp_gate\tjs_target_percent\tjs_baseline_percent\tjs_gate\tacceptance\trelease_archive\trelease_gate'
+[[ -f "$quality_config" ]] || fail 'config/quality-gates.tsv fehlt.'
+[[ "$(head -n 1 "$quality_config")" == "$expected_header" ]] || fail 'Ungültiger Quality-Gate-Header.'
+
+declare -A component_paths=()
+declare -A configured=()
+while IFS=$'\t' read -r path kind slug runtime_link; do
+	[[ "$path" == 'path' ]] && continue
+	[[ "$kind" == 'plugin' || "$kind" == 'theme' ]] || continue
+	component_paths[$slug]="$path"
+done < "$inventory"
+
+while IFS=$'\t' read -r slug phase commit_gate ci_gate php_target php_baseline php_gate js_target js_baseline js_gate acceptance release_archive release_gate; do
+	[[ "$slug" == 'slug' ]] && continue
+	[[ -n "${component_paths[$slug]:-}" ]] || fail "Quality-Gate enthält nicht registrierte Komponente: $slug"
+	[[ -z "${configured[$slug]:-}" ]] || fail "Doppelte Quality-Gate-Zeile: $slug"
+	configured[$slug]=1
+	[[ "$phase" =~ ^[0-5]$ ]] || fail "Ungültige Übernahmephase für $slug: $phase"
+	[[ "$commit_gate" == 'transition' || "$commit_gate" == 'enforced' ]] || fail "Ungültiger Commit-Gate-Status für $slug."
+	[[ "$ci_gate" == 'pending' || "$ci_gate" == 'enforced' ]] || fail "Ungültiger CI-Gate-Status für $slug."
+	[[ "$php_target" == '85' ]] || fail "PHP-Zielwert für $slug muss 85 sein."
+	[[ "$php_baseline" == 'pending' || "$php_baseline" =~ ^[0-9]+([.][0-9]+)?$ ]] || fail "Ungültige PHP-Baseline für $slug."
+	[[ "$php_gate" == 'baseline-pending' || "$php_gate" == 'enforced' ]] || fail "Ungültiger PHP-Gate-Status für $slug."
+	if [[ "$php_gate" == 'enforced' ]]; then
+		[[ "$php_baseline" != 'pending' ]] || fail "PHP-Gate für $slug ist ohne Baseline als enforced markiert."
+	fi
+
+	repo="$workspace/${component_paths[$slug]}"
+	if find "$repo" -path "$repo/.git" -prune -o -path "$repo/vendor" -prune -o -path "$repo/tests" -prune -o -type f -name '*.js' -print -quit | grep -q .; then
+		[[ "$js_target" == '85' ]] || fail "JavaScript-Zielwert für $slug muss 85 sein."
+		[[ "$js_baseline" == 'pending' || "$js_baseline" =~ ^[0-9]+([.][0-9]+)?$ ]] || fail "Ungültige JavaScript-Baseline für $slug."
+		[[ "$js_gate" == 'baseline-pending' || "$js_gate" == 'enforced' ]] || fail "Ungültiger JavaScript-Gate-Status für $slug."
+		if [[ "$js_gate" == 'enforced' ]]; then
+			[[ "$js_baseline" != 'pending' ]] || fail "JavaScript-Gate für $slug ist ohne Baseline als enforced markiert."
+		fi
+	else
+		[[ "$js_target" == 'n/a' && "$js_baseline" == 'n/a' && "$js_gate" == 'not-applicable' ]] \
+			|| fail "Komponente ohne JavaScript muss n/a/not-applicable verwenden: $slug"
+	fi
+
+	[[ "$acceptance" == 'prepared' || "$acceptance" == 'accepted' ]] || fail "Ungültiger Abnahmestatus für $slug."
+	[[ -f "$repo/docs/manual-acceptance.md" ]] || fail "Manuelles Abnahmeprotokoll fehlt für $slug."
+	[[ "$release_archive" == 'pending' || "$release_archive" == 'enforced' ]] || fail "Ungültiger Archivstatus für $slug."
+	[[ "$release_gate" == 'blocked' || "$release_gate" == 'ready' ]] || fail "Ungültiger Release-Gate-Status für $slug."
+
+	if [[ "$ci_gate" == 'enforced' ]]; then
+		[[ -f "$repo/.github/workflows/tests.yml" ]] || fail "CI-Gate für $slug ist ohne Workflow als enforced markiert."
+	fi
+	if [[ "$release_archive" == 'enforced' ]]; then
+		[[ -x "$repo/scripts/build-release" ]] || fail "Release-Archiv für $slug ist ohne ausführbaren Builder als enforced markiert."
+	fi
+	if [[ "$release_gate" == 'ready' ]]; then
+		[[ "$phase" == '5' && "$commit_gate" == 'enforced' && "$ci_gate" == 'enforced' \
+			&& "$php_gate" == 'enforced' && "$acceptance" == 'accepted' && "$release_archive" == 'enforced' ]] \
+			|| fail "Release-Gate für $slug ist ohne vollständige Pflichtgates als ready markiert."
+		[[ "$js_gate" == 'enforced' || "$js_gate" == 'not-applicable' ]] \
+			|| fail "JavaScript-Gate für $slug blockiert die Releasebereitschaft."
+		for required in README.md LICENSE CHANGELOG.md; do
+			[[ -f "$repo/$required" ]] || fail "Releasepflichtdatei fehlt für $slug: $required"
+		done
+	fi
+done < "$quality_config"
+
+for slug in "${!component_paths[@]}"; do
+	[[ -n "${configured[$slug]:-}" ]] || fail "Quality-Gate-Zeile fehlt für $slug."
+done
+[[ "${#configured[@]}" -eq "${#component_paths[@]}" ]] || fail 'Quality-Gate und Komponenten-Inventar weichen voneinander ab.'
+
+echo 'Quality-Gate-Policy: OK'
+
+[[ "$mode" == '--policy' ]] && exit 0
+[[ -n "${component_paths[$requested_slug]:-}" ]] || fail "Unbekannte Komponente: $requested_slug"
+row="$(awk -F '\t' -v slug="$requested_slug" '$1 == slug { print; exit }' "$quality_config")"
+IFS=$'\t' read -r slug phase commit_gate ci_gate php_target php_baseline php_gate js_target js_baseline js_gate acceptance release_archive release_gate <<< "$row"
+repo="$workspace/${component_paths[$requested_slug]}"
+
+if [[ "$mode" == '--commit' ]]; then
+	if [[ "$commit_gate" != 'enforced' ]]; then
+		echo "COMMIT BLOCKIERT: $requested_slug befindet sich in Quality-Rollout-Phase $phase." >&2
+		echo 'Nur ausdrücklich beauftragte Quality-Rollout-Commits dürfen den Übergang herstellen.' >&2
+		exit 1
+	fi
+	git -C "$repo" status --short
+	git -C "$repo" diff --stat
+	git -C "$repo" diff --name-only
+	"$repo/scripts/check-fast"
+	git -C "$repo" diff --check
+	echo "Commit-Gate: OK ($requested_slug)"
+	exit 0
+fi
+
+blockers=()
+[[ "$release_gate" == 'ready' ]] || blockers+=("release_gate=$release_gate")
+[[ "$commit_gate" == 'enforced' ]] || blockers+=("commit_gate=$commit_gate")
+[[ "$ci_gate" == 'enforced' ]] || blockers+=("ci_gate=$ci_gate")
+[[ "$php_gate" == 'enforced' ]] || blockers+=("php_gate=$php_gate")
+[[ "$js_gate" == 'enforced' || "$js_gate" == 'not-applicable' ]] || blockers+=("js_gate=$js_gate")
+[[ "$acceptance" == 'accepted' ]] || blockers+=("acceptance=$acceptance")
+[[ "$release_archive" == 'enforced' ]] || blockers+=("release_archive=$release_archive")
+if (( ${#blockers[@]} > 0 )); then
+	echo "RELEASE BLOCKIERT: $requested_slug" >&2
+	printf ' - %s\n' "${blockers[@]}" >&2
+	exit 1
+fi
+
+for path in "$workspace" "${component_paths[@]/#/$workspace/}"; do
+	if [[ -n "$(git -C "$path" status --porcelain --untracked-files=all)" ]]; then
+		echo "RELEASE BLOCKIERT: Repository ist nicht sauber: $path" >&2
+		exit 1
+	fi
+done
+"$workspace/scripts/check-fast"
+echo "Release-Gate: OK ($requested_slug)"
