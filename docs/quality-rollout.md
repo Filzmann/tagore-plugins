@@ -97,6 +97,12 @@ fachliche oder visuelle Abnahme.
 
 Danach darf `release_archive` auf `enforced` wechseln.
 
+Zwischenstand: Der BR-starke Ein-Wurzel-, Manifest-, SHA-256-, Ausschluss- und
+Bytegleichheitsvertrag ist als installierbares WordPress-ZIP zentral
+implementiert und in allen Komponenten-CI-Workflows eingebunden.
+`release_archive=configured` bleibt bis zu grünen Remote-Läufen sowie der
+Installation und dem Upgrade aus dem exakten Artefakt bestehen.
+
 ## Phase 5 – Releasefreigabe
 
 Nur wenn alle vorherigen Phasen für die Komponente abgeschlossen sind, darf

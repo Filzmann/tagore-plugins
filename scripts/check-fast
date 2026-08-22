@@ -31,6 +31,10 @@ echo "=== Coverage tooling contract ==="
 bash tests/check-coverage-contract.sh
 
 echo
+echo "=== Release artifact contract ==="
+bash tests/check-release-contract.sh
+
+echo
 echo "=== Component repositories ==="
 while IFS=$'\t' read -r path kind slug _runtime_link <&3; do
 	[[ "$path" == "path" ]] && continue

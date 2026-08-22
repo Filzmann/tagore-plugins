@@ -22,6 +22,11 @@ noch keinen belastbaren Messwert, `configured` besitzt eine lokal gemessene
 Baseline und eine aktive No-Regression-Prüfung, aber noch keinen grünen
 Remote-Nachweis. Nur `enforced` erfüllt das Release-Gate.
 
+Beim Release-Artefakt bedeutet `pending`, dass der reproduzierbare Builder
+fehlt. `configured` belegt Builder, Strukturtests und CI-Vertrag, aber noch
+nicht alle Remote- sowie Installations-/Upgrade-Nachweise aus dem exakten ZIP.
+Nur `enforced` erfüllt das Release-Gate.
+
 ## Commit-Gate
 
 Vor jedem normalen Komponenten-Commit sind erforderlich:
