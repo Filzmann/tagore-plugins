@@ -50,7 +50,7 @@ auf `enforced` wechseln.
 
 Zwischenstand: Das zentral gepinnte PHPCOV-/c8-Tooling und die Xdebug-Jobs sind
 remote reproduzierbar grün. Die gemessenen PHP-Baselines sind 54,99 Prozent
-für `flz_wpdb_objects`, 54,34 Prozent für `flz_ui_components`, 65,09 Prozent
+für `flz_wpdb_objects`, 54,34 Prozent für `flz_ui_components`, zunächst 65,09 Prozent
 für `flz_shortcode_redirect`, 10,69 Prozent für `flz_elternsprechtag`,
 8,16 Prozent für `flz_probeunterricht` und 16,34 Prozent für `flz_ags`.
 JavaScript ist mit 54,05 Prozent für `flz_ui_components` und 41,46 Prozent für
@@ -66,6 +66,11 @@ durch die Bestandsratschen nicht abgesenkt.
 
 Lokales Xdebug fehlt weiterhin; dies ist nach den zwei Remote-Nachweisen keine
 Baseline-Lücke mehr, bleibt aber als lokale Ausführungslücke transparent.
+
+Erster Phase-3-Fortschritt: Zusätzliche Redirect-Sicherheits-, Logging- und
+Blocktests heben `flz_shortcode_redirect` auf 99,06 Prozent PHP-Line-Coverage.
+Die No-Regression-Ratsche wurde auf diesen Wert angehoben; die manuelle
+Abnahme bleibt davon getrennt `prepared`.
 
 ## Phase 3 – Testlücken und manuelle Abnahme
 

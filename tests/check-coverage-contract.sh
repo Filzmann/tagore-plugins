@@ -73,6 +73,11 @@ while IFS=$'\t' read -r path kind slug _runtime_link; do
 		|| fail "PHP-Coverage-Baseline ist für $slug nicht numerisch konfiguriert."
 	[[ "$php_gate" == 'enforced' ]] \
 		|| fail "PHP-Coverage-Gate ist für $slug nicht enforced."
+	"$workspace/scripts/check-coverage-baseline" "$slug" php "$php_baseline" >/dev/null
+	php_below="$(awk -v baseline="$php_baseline" 'BEGIN { printf "%.2f", baseline - 0.01 }')"
+	if "$workspace/scripts/check-coverage-baseline" "$slug" php "$php_below" >/dev/null 2>&1; then
+		fail "PHP-Coverage-Rückgang wird für $slug nicht blockiert."
+	fi
 done < "$inventory"
 
 for slug in flz_ui_components flz_ags; do
@@ -89,6 +94,12 @@ for slug in flz_ui_components flz_ags; do
 	done
 	js_gate="$(awk -F '\t' -v slug="$slug" '$1 == slug { print $10; exit }' "$workspace/config/quality-gates.tsv")"
 	[[ "$js_gate" == 'enforced' ]] || fail "JavaScript-Coverage-Gate ist für $slug nicht enforced."
+	js_baseline="$(awk -F '\t' -v slug="$slug" '$1 == slug { print $9; exit }' "$workspace/config/quality-gates.tsv")"
+	"$workspace/scripts/check-coverage-baseline" "$slug" js "$js_baseline" >/dev/null
+	js_below="$(awk -v baseline="$js_baseline" 'BEGIN { printf "%.2f", baseline - 0.01 }')"
+	if "$workspace/scripts/check-coverage-baseline" "$slug" js "$js_below" >/dev/null 2>&1; then
+		fail "JavaScript-Coverage-Rückgang wird für $slug nicht blockiert."
+	fi
 done
 
 for slug in flz_wpdb_objects flz_shortcode_redirect flz_elternsprechtag flz_probeunterricht; do
