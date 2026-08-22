@@ -52,7 +52,7 @@ Zwischenstand: Das zentral gepinnte PHPCOV-/c8-Tooling und die Xdebug-Jobs sind
 remote reproduzierbar grün. Die gemessenen PHP-Baselines sind 58,18 Prozent
 für `flz_wpdb_objects`, 54,34 Prozent für `flz_ui_components`, zunächst 65,09 und inzwischen 99,06 Prozent
 für `flz_shortcode_redirect`, 10,69 Prozent für `flz_elternsprechtag`,
-8,16 Prozent für `flz_probeunterricht` und 16,34 Prozent für `flz_ags`.
+8,16 Prozent für `flz_probeunterricht` und 16,47 Prozent für `flz_ags`.
 JavaScript ist mit 54,05 Prozent für `flz_ui_components` und 41,46 Prozent für
 `flz_ags` remote belegt und deshalb `enforced`.
 
