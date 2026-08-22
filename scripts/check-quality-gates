@@ -91,6 +91,19 @@ while IFS=$'\t' read -r slug phase commit_gate ci_gate php_target php_baseline p
 			[[ -f "$repo/$required" ]] || fail "Releasepflichtdatei fehlt für $slug: $required"
 		done
 	fi
+	if [[ "$commit_gate" == 'enforced' ]]; then
+		(( phase >= 2 )) || fail "Commit-Gate für $slug ist vor Phase 2 enforced."
+		[[ "$ci_gate" == 'enforced' && "$php_gate" == 'enforced' ]] \
+			|| fail "Commit-Gate für $slug ist ohne enforced CI-/PHP-Gate freigegeben."
+		[[ "$js_gate" == 'enforced' || "$js_gate" == 'not-applicable' ]] \
+			|| fail "Commit-Gate für $slug ist ohne enforced JavaScript-Gate freigegeben."
+	fi
+	if (( phase >= 2 )); then
+		[[ "$ci_gate" == 'enforced' && "$php_gate" == 'enforced' ]] \
+			|| fail "Übernahmephase $phase für $slug braucht enforced CI-/PHP-Gates."
+		[[ "$js_gate" == 'enforced' || "$js_gate" == 'not-applicable' ]] \
+			|| fail "Übernahmephase $phase für $slug braucht ein vollständiges JavaScript-Gate."
+	fi
 done < "$quality_config"
 
 for slug in "${!component_paths[@]}"; do

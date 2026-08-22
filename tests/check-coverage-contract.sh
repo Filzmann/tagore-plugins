@@ -66,6 +66,13 @@ while IFS=$'\t' read -r path kind slug _runtime_link; do
 		'measure-component-php-coverage'; do
 		require_text "$workflow" "$text"
 	done
+	row="$(awk -F '\t' -v slug="$slug" '$1 == slug { print; exit }' "$workspace/config/quality-gates.tsv")"
+	IFS=$'\t' read -r _slug _phase _commit _ci _php_target php_baseline php_gate \
+		_js_target _js_baseline _js_gate _acceptance _archive _release <<< "$row"
+	[[ "$php_baseline" =~ ^[0-9]+([.][0-9]+)?$ ]] \
+		|| fail "PHP-Coverage-Baseline ist für $slug nicht numerisch konfiguriert."
+	[[ "$php_gate" == 'configured' || "$php_gate" == 'enforced' ]] \
+		|| fail "PHP-Coverage-Gate ist für $slug noch nicht konfiguriert."
 done < "$inventory"
 
 for slug in flz_ui_components flz_ags; do

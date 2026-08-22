@@ -30,11 +30,12 @@ Je Komponente:
   und sicherem `main`-Fallback;
 - verpflichtende Lizenz und Changelog.
 
-Lokaler Status: umgesetzt. Die Workflows, Lizenzen, Changelogs und
-Provider-/Consumer-Verträge sind strukturell geprüft; `ci_gate` steht deshalb
-auf `configured`. Erst ein grüner Remote-Lauf nach einem ausdrücklich
-autorisierten Push darf auf `enforced` hochstufen. `commit_gate` bleibt wegen
-der noch nicht gemessenen Coverage-Baselines auf `transition`.
+Status: umgesetzt und remote belegt. Die Draft-PRs aller sechs Komponenten
+sowie des Workspaces sind am 22. August 2026 einschließlich PHP 8.1/8.5,
+Komponenten-Smokes, JavaScript, Provider-/Consumer-Verträgen und Workspace-
+Vertrag grün gelaufen. `ci_gate` steht deshalb für alle Komponenten auf
+`enforced`. `commit_gate` bleibt bis zum grünen Wiederholungslauf gegen die
+neu konfigurierten PHP-Baselines auf `transition`.
 
 ## Phase 2 – Coverage-Baseline und No-Regression
 
@@ -49,12 +50,19 @@ Erst nach reproduzierbarer Messung darf `php_gate` beziehungsweise `js_gate`
 auf `enforced` wechseln.
 
 Zwischenstand: Das zentral gepinnte PHPCOV-/c8-Tooling und die Xdebug-Jobs sind
-konfiguriert. JavaScript wurde lokal reproduzierbar mit 54,05 Prozent für
-`flz_ui_components` und 41,46 Prozent für `flz_ags` gemessen; beide Ratschen
-stehen bis zum Remote-Nachweis auf `configured`. PHP bleibt
-`baseline-pending`, weil lokal weder Xdebug noch eine erreichbare
-DDEV-/Docker-Laufzeit vorhanden ist. Keine Komponente wird deshalb vorzeitig
-auf Übernahmephase 2 hochgesetzt.
+remote reproduzierbar grün. Die gemessenen PHP-Baselines sind 54,99 Prozent
+für `flz_wpdb_objects`, 54,34 Prozent für `flz_ui_components`, 65,09 Prozent
+für `flz_shortcode_redirect`, 10,69 Prozent für `flz_elternsprechtag`,
+8,16 Prozent für `flz_probeunterricht` und 16,34 Prozent für `flz_ags`.
+JavaScript ist mit 54,05 Prozent für `flz_ui_components` und 41,46 Prozent für
+`flz_ags` remote belegt und deshalb `enforced`.
+
+Die PHP-Ratschen stehen zunächst auf `configured`: Der erste Lauf hat die
+ehrlichen Werte bestimmt, aber noch nicht gegen diese Werte blockiert. Erst
+ein grüner Wiederholungslauf mit der aktualisierten Gate-Konfiguration setzt
+`php_gate`, `commit_gate` und `adoption_phase` auf `enforced`, `enforced` und
+`2`. Lokales Xdebug fehlt weiterhin; dies ist nach dem Remote-Nachweis keine
+Baseline-Lücke mehr, bleibt aber als lokale Ausführungslücke transparent.
 
 ## Phase 3 – Testlücken und manuelle Abnahme
 
