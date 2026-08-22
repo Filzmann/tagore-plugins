@@ -48,6 +48,14 @@ der noch nicht gemessenen Coverage-Baselines auf `transition`.
 Erst nach reproduzierbarer Messung darf `php_gate` beziehungsweise `js_gate`
 auf `enforced` wechseln.
 
+Zwischenstand: Das zentral gepinnte PHPCOV-/c8-Tooling und die Xdebug-Jobs sind
+konfiguriert. JavaScript wurde lokal reproduzierbar mit 54,05 Prozent für
+`flz_ui_components` und 41,46 Prozent für `flz_ags` gemessen; beide Ratschen
+stehen bis zum Remote-Nachweis auf `configured`. PHP bleibt
+`baseline-pending`, weil lokal weder Xdebug noch eine erreichbare
+DDEV-/Docker-Laufzeit vorhanden ist. Keine Komponente wird deshalb vorzeitig
+auf Übernahmephase 2 hochgesetzt.
+
 ## Phase 3 – Testlücken und manuelle Abnahme
 
 - Altcode schrittweise auf mindestens 85 Prozent Line-Coverage anheben;

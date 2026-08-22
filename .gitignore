@@ -25,6 +25,7 @@ wp-config.php
 
 # Composer / tooling
 vendor/
+node_modules/
 
 # Test / coverage
 coverage/
@@ -32,6 +33,17 @@ build/
 dist/
 .phpunit.result.cache
 .quality-release-test.out
+
+# Gepinnter Coverage-Vertrag; installierte Werkzeuge und Reports bleiben ignoriert.
+!/tests/coverage/
+!/tests/coverage/composer.json
+!/tests/coverage/composer.lock
+!/tests/coverage/package.json
+!/tests/coverage/package-lock.json
+!/tests/coverage/merge-clover.php
+!/tests/coverage/execute-component-smoke.php
+!/tests/fixtures/coverage/
+!/tests/fixtures/coverage/half.xml
 
 # Local reports
 reports/

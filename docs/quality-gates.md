@@ -17,6 +17,11 @@ noch kein grüner Remote-Lauf für den betreffenden Stand belegt ist. Erst ein
 erfolgreicher Pull-Request- oder `main`-Lauf darf den Status auf `enforced`
 setzen. Release- und normales Commit-Gate akzeptieren nur `enforced`.
 
+Für PHP-/JavaScript-Coverage gilt dieselbe Trennung: `baseline-pending` enthält
+noch keinen belastbaren Messwert, `configured` besitzt eine lokal gemessene
+Baseline und eine aktive No-Regression-Prüfung, aber noch keinen grünen
+Remote-Nachweis. Nur `enforced` erfüllt das Release-Gate.
+
 ## Commit-Gate
 
 Vor jedem normalen Komponenten-Commit sind erforderlich:

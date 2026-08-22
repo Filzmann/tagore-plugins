@@ -49,18 +49,18 @@ while IFS=$'\t' read -r slug phase commit_gate ci_gate php_target php_baseline p
 	fi
 	[[ "$php_target" == '85' ]] || fail "PHP-Zielwert für $slug muss 85 sein."
 	[[ "$php_baseline" == 'pending' || "$php_baseline" =~ ^[0-9]+([.][0-9]+)?$ ]] || fail "Ungültige PHP-Baseline für $slug."
-	[[ "$php_gate" == 'baseline-pending' || "$php_gate" == 'enforced' ]] || fail "Ungültiger PHP-Gate-Status für $slug."
-	if [[ "$php_gate" == 'enforced' ]]; then
-		[[ "$php_baseline" != 'pending' ]] || fail "PHP-Gate für $slug ist ohne Baseline als enforced markiert."
+	[[ "$php_gate" == 'baseline-pending' || "$php_gate" == 'configured' || "$php_gate" == 'enforced' ]] || fail "Ungültiger PHP-Gate-Status für $slug."
+	if [[ "$php_gate" == 'configured' || "$php_gate" == 'enforced' ]]; then
+		[[ "$php_baseline" != 'pending' ]] || fail "PHP-Gate für $slug ist ohne Baseline als $php_gate markiert."
 	fi
 
 	repo="$workspace/${component_paths[$slug]}"
 	if find "$repo" -path "$repo/.git" -prune -o -path "$repo/vendor" -prune -o -path "$repo/tests" -prune -o -type f -name '*.js' -print -quit | grep -q .; then
 		[[ "$js_target" == '85' ]] || fail "JavaScript-Zielwert für $slug muss 85 sein."
 		[[ "$js_baseline" == 'pending' || "$js_baseline" =~ ^[0-9]+([.][0-9]+)?$ ]] || fail "Ungültige JavaScript-Baseline für $slug."
-		[[ "$js_gate" == 'baseline-pending' || "$js_gate" == 'enforced' ]] || fail "Ungültiger JavaScript-Gate-Status für $slug."
-		if [[ "$js_gate" == 'enforced' ]]; then
-			[[ "$js_baseline" != 'pending' ]] || fail "JavaScript-Gate für $slug ist ohne Baseline als enforced markiert."
+		[[ "$js_gate" == 'baseline-pending' || "$js_gate" == 'configured' || "$js_gate" == 'enforced' ]] || fail "Ungültiger JavaScript-Gate-Status für $slug."
+		if [[ "$js_gate" == 'configured' || "$js_gate" == 'enforced' ]]; then
+			[[ "$js_baseline" != 'pending' ]] || fail "JavaScript-Gate für $slug ist ohne Baseline als $js_gate markiert."
 		fi
 	else
 		[[ "$js_target" == 'n/a' && "$js_baseline" == 'n/a' && "$js_gate" == 'not-applicable' ]] \

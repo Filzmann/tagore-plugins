@@ -23,6 +23,7 @@ required=(
 	"scripts/check-quality-gates"
 	"tests/check-quality-gates.sh"
 	"tests/check-ci-contract.sh"
+	"tests/check-coverage-contract.sh"
 	".codex/config.toml"
 	".codex/agents/explorer.toml"
 	".codex/agents/reviewer.toml"

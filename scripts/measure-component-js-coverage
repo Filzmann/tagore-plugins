@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+workspace="$(cd "$(dirname "$0")/.." && pwd)"
+
+fail() {
+	echo "ERROR: $*" >&2
+	exit 1
+}
+
+[[ $# -eq 4 ]] \
+	|| fail 'Aufruf: scripts/measure-component-js-coverage <slug> <Repository> <c8> <Ausgabeverzeichnis>'
+slug="$1"
+repo="$(realpath "$2")"
+c8="$(realpath "$3")"
+output="$4"
+
+[[ -d "$repo" ]] || fail "Repository fehlt: $repo"
+[[ -x "$c8" ]] || fail "c8 ist nicht ausführbar: $c8"
+[[ "$(basename "$repo")" == "$slug" ]] || fail "Slug und Repository passen nicht zusammen: $slug / $repo"
+[[ -f "$repo/tests/run-js.mjs" ]] || fail "JavaScript-Test-Runner fehlt: $repo/tests/run-js.mjs"
+
+mkdir -p "$output"
+if find "$output" -mindepth 1 -print -quit | grep -q .; then
+	fail "Coverage-Ausgabeverzeichnis ist nicht leer: $output"
+fi
+
+(
+	cd "$repo"
+	"$c8" \
+		--all \
+		'--include=assets/js/**/*.js' \
+		--reporter=text \
+		--reporter=json-summary \
+		--reports-dir="$output" \
+		node tests/run-js.mjs
+)
+
+summary="$output/coverage-summary.json"
+[[ -f "$summary" ]] || fail "c8 hat keinen JSON-Summary erzeugt: $summary"
+percent="$(node -e 'const s=require(process.argv[1]); process.stdout.write(String(s.total.lines.pct));' "$summary")"
+"$workspace/scripts/check-coverage-baseline" "$slug" js "$percent"

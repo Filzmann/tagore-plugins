@@ -1,0 +1,12 @@
+{
+  "name": "tagore-gymnasium/wordpress-coverage-tools",
+  "description": "Nur lokal und in CI verwendete PHP-Coverage-Werkzeuge.",
+  "type": "project",
+  "license": "GPL-2.0-or-later",
+  "require-dev": {
+    "phpunit/phpcov": "^11.0"
+  },
+  "config": {
+    "sort-packages": true
+  }
+}

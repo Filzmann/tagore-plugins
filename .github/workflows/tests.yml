@@ -81,12 +81,20 @@ jobs:
         with:
           php-version: '8.5'
           coverage: none
+          extensions: mbstring
           tools: composer:v2
+      - name: Node.js einrichten
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
       - name: Gesperrte Entwicklungsabhängigkeiten installieren
         run: |
           for repository in workspace/repositories/flz_*; do
             composer install --working-dir="$repository" --no-interaction --no-progress --prefer-dist
           done
+          composer install --working-dir=workspace/tests/coverage --no-interaction --no-progress --prefer-dist
+          npm ci --prefix workspace/tests/coverage --ignore-scripts
       - name: Workspace und alle Komponenten prüfen
         working-directory: workspace
         run: ./scripts/check-fast

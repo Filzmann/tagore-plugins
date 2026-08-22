@@ -133,6 +133,9 @@ mit `create-wordpress-extension` angelegt. Workspace-Prüfungen folgen
 - `ci_gate=configured` bestätigt nur den lokal geprüften Workflow-Vertrag.
   Erst ein grüner Remote-Lauf für den betroffenen Stand erlaubt
   `ci_gate=enforced`; ein Release bleibt vorher technisch blockiert.
+- Auch ein Coverage-Gate wechselt nach lokaler Messung zunächst auf
+  `configured`. Baseline-Rückgänge werden dann bereits blockiert;
+  `enforced` setzt zusätzlich einen grünen Remote-Lauf voraus.
 
 ## Persistenz, Updates und Datenschutz
 

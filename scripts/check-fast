@@ -7,7 +7,12 @@ cd "$ROOT_DIR"
 echo "=== Workspace shell syntax ==="
 while IFS= read -r script; do
 	bash -n "$script"
-done < <(find scripts tests -type f \( -name '*.sh' -o -name 'check-*' \) | sort)
+done < <(
+	find scripts tests \
+		-path '*/vendor' -prune -o \
+		-path '*/node_modules' -prune -o \
+		-type f \( -name '*.sh' -o -name 'check-*' \) -print | sort
+)
 echo "Shell syntax: OK"
 
 echo "=== Workspace structure ==="
@@ -20,6 +25,10 @@ bash tests/check-quality-gates.sh
 echo
 echo "=== CI contract ==="
 bash tests/check-ci-contract.sh
+
+echo
+echo "=== Coverage tooling contract ==="
+bash tests/check-coverage-contract.sh
 
 echo
 echo "=== Component repositories ==="
