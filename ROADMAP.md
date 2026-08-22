@@ -1,18 +1,22 @@
 # Priorisierte Workspace-Roadmap
 
-Stand: 12. August 2026. Diese Roadmap fasst die statische Regelprüfung aller
+Stand: 22. August 2026. Diese Roadmap fasst die statische und lokale Prüfung aller
 in `config/workspace-components.tsv` registrierten Komponenten zusammen. Das
 Inventar enthält sechs Plugins und noch kein eigenes Theme. Jedes Plugin
 besitzt ein eigenes Git-Repository unter `repositories/`; die Detailpläne
 liegen im jeweiligen Repository.
 
+Die komponentenübergreifende Prüfung von Demo- und Beispieldaten ist in
+`docs/demo-data-audit.md` dokumentiert.
+
 ## Gesamturteil
 
-**Teilweise regelkonform, mit nicht freigabefähigen P0-Befunden.** Struktur,
-PHP-Syntax und vorhandene Smoke-Tests bestehen. Datenschutz, Deaktivierung,
-geschützte Exporte, Nebenläufigkeit und belastbare WordPress-Integration sind
-noch nicht durchgängig regelkonform. Eine Release- oder Deployment-Freigabe
-folgt aus dieser Prüfung ausdrücklich nicht.
+**Release-Candidate-Stand ohne offene P0-Befunde.** Struktur, PHP-Syntax,
+PHPCS und alle Komponenten-Smokes bestehen. Datenschutz, nichtdestruktive
+Deaktivierung, geschützte Exporte, additive Migrationen und zentrale
+Nebenläufigkeitsinvarianten sind umgesetzt und lokal mit WordPress/DDEV
+verifiziert. Vor stabilen Releases bleiben Browser-/Screenreader-Abnahme, echte
+parallele HTTP-Prozesse und reproduzierbare Release-Artefakte nachzuweisen.
 
 ## P0 – Repository-Trennung als Arbeitsgrundlage
 
@@ -30,49 +34,42 @@ folgt aus dieser Prüfung ausdrücklich nicht.
 
 ## P0 – vor weiterer fachlicher Erweiterung
 
-1. **Datenverlust bei Deaktivierung verhindern.**
-   `flz_elternsprechtag` und `flz_probeunterricht` löschen beim Deaktivieren
-   Tabellen und Rollen. Deaktivierung muss nichtdestruktiv werden; eine spätere
-   Deinstallation braucht eine eigene dokumentierte Produktentscheidung,
-   ausdrückliche Zustimmung und Tests mit Bestandsdaten.
-2. **Personenbezogene Exporte aus öffentlichen Uploads entfernen.**
-   Elternsprechtag und Probeunterricht erzeugen CSV-Dateien unter festen Namen
-   im öffentlichen Upload-Verzeichnis. Auf nonce- und capability-geschützte,
-   direkt gestreamte Downloads ohne persistente öffentliche Datei umstellen.
-3. **Produktive/personenbezogene Testadressierung entfernen.**
-   Der Testmodus des Elternsprechtags überschreibt Empfänger mit einer privaten
-   Gmail-Adresse. Auf lokale, explizit konfigurierte Mail-Capture-Mechanismen
-   ohne reale Personendaten umstellen.
-4. **Buchungs- und Kapazitätsinvarianten atomar machen.**
-   Doppelbuchungen beim Elternsprechtag sowie Überbuchung und inkonsistente
-   Sitzplatzzähler beim Probeunterricht durch Transaktionen mit wirksamer
-   Sperre/Constraint verhindern. Erlaubte und konkurrierende Negativfälle
-   müssen das Ausbleiben verbotener Nebenwirkungen belegen.
+1. **Erledigt:** Elternsprechtag und Probeunterricht deaktivieren
+   nichtdestruktiv. Lokale Aktivieren–Deaktivieren–Aktivieren-Läufe erhielten
+   Tabellen, Rollen, Capabilities und alle Bestandsdatensätze.
+2. **Erledigt:** Personenbezogene CSV-Dateien werden capability- und
+   nonce-geschützt direkt gestreamt. Die beiden öffentlichen Altdateien wurden
+   entfernt und werden nicht erneut erzeugt.
+3. **Erledigt:** Der Elternsprechtag-Testmodus verwendet ausschließlich
+   `private-test@example.test`; Smokes sperren Gmail-/Googlemail-Adressen.
+4. **Erledigt:** Buchung, Gesamt-/Schulkapazität und aktive AG-Anmeldung sind
+   transaktional beziehungsweise durch eindeutige Datenbankverträge abgesichert.
 
 ## P1 – Sicherheits-, Datenschutz- und Persistenzverträge
 
-1. Für `flz_elternsprechtag`, `flz_probeunterricht` und `flz_ags`
-   Aufbewahrungs-, Auskunfts-, Anonymisierungs- und Löschverträge festlegen und
-   mit WordPress-Privacy-Hooks sowie idempotenten Routinen umsetzen.
-2. Legacy-Schemaänderungen von Elternsprechtag und Probeunterricht mit eigener
-   DB-Version und additiven, wiederholbaren Upgradepfaden versehen; frische
-   Installation und Upgrade mit synthetischen Bestandsdaten testen.
+1. **Erledigt:** `flz_elternsprechtag`, `flz_probeunterricht` und `flz_ags`
+   besitzen WordPress-Privacy-Exporter/-Eraser sowie eine standardmäßig
+   deaktivierte, konfigurierbare Aufbewahrung mit 24 Monaten als Vorschlag.
+2. **Erledigt:** Die drei Fachplugins verwenden eigene DB-Versionen und
+   additive, idempotente Upgradepfade; reale lokale Bestände wurden migriert,
+   Alt-Tabellen nicht gelöscht.
 3. **Erledigt:** Direkte Includes interner Shared-Dateien durch kleine
    öffentliche Bootstrap-/API-Verträge und defensive Abhängigkeitsprüfung
    ersetzt.
-4. Für jede Capability-, Nonce-, Upload-, Export- und öffentliche
-   Formulargrenze mindestens einen erlaubten und einen verweigerten oder
-   manipulierten Integrationstest ergänzen.
-5. Den Redirect-Vertrag explizit auf erlaubte Ziele, Secret-Lebenszyklus und
-   gewünschtes Verhalten bei fehlendem Secret festlegen und testen.
+4. **Weitgehend erledigt:** Komponenten-Smokes decken erlaubte und verweigerte
+   Upload-, Export-, Formular-, Datenschutz- und Nebenläufigkeitsfälle ab. Ein
+   kompletter WordPress-Integrationstest sämtlicher Requestvarianten bleibt P2.
+5. **Erledigt:** Redirects verwenden seitengebundene HMAC-Signaturen mit Ablauf,
+   `wp_validate_redirect()` und `wp_safe_redirect()`; das Klartext-Secret wurde
+   aus Code und bestehender Inhaltsseite entfernt.
 
 ## P2 – Wartbarkeit und Nutzeroberfläche
 
 1. Übersetzbare Texte und komponenteneigene Textdomains in allen Plugins
    vervollständigen; Header-Metadaten und Versionsquellen bereinigen.
-2. `flz_ui_components` nur dort laden, wo Komponenten tatsächlich gerendert
-   werden, Inline-Eventhandler abbauen und öffentliche Renderer-/Blockverträge
-   mit Verbraucher- und JavaScript-Tests absichern.
+2. **Erledigt:** `flz_ui_components` registriert Assets global, lädt sie aber
+   nur bei Nutzung. Inline-Eventhandler wurden durch Data-Attribute und
+   delegierte JavaScript-Handler ersetzt; Vertrags-Smokes sind vorhanden.
 3. Controller, Fachlogik, Datenzugriff und Templates in den beiden
    Legacy-Fachplugins schrittweise trennen; keine breite Umschreibung ohne
    vorher gesicherte Invarianten.
@@ -92,11 +89,12 @@ folgt aus dieser Prüfung ausdrücklich nicht.
 
 ## Reihenfolge und Abhängigkeiten
 
-1. P0 in `flz_elternsprechtag` und `flz_probeunterricht`.
-2. Download-/Dateivertrag in `flz_wpdb_objects`, danach beide Verbraucher.
-3. Privacy- und Migrationsverträge der drei Fachplugins.
-4. Öffentliche Verträge und Tests der Shared-Plugins.
-5. Redirect-Härtung, Internationalisierung, UI- und Delivery-Gates.
+1. `flz_wpdb_objects` 2.0.0 und danach `flz_ui_components` 0.2.0.
+2. `flz_shortcode_redirect` 2.0.0 als unabhängige Breaking-Änderung.
+3. `flz_ags` 0.6.0, `flz_elternsprechtag` 1.1.0 und
+   `flz_probeunterricht` 1.1.0 nach den Shared-Plugins.
+4. Danach Internationalisierung, Browser-/Barrierefreiheitsabnahme,
+   Zwei-Prozess-Integration und reproduzierbare Release-Artefakte abschließen.
 
 Änderungen an Schema, Rollen/Capabilities, öffentlichen Shared-APIs, Uploads,
 Downloads oder mehreren Komponenten bleiben Stop-Gates: Vor Umsetzung sind
