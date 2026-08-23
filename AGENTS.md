@@ -10,6 +10,8 @@ Uploads und fremde Erweiterungen gehören nicht in dieses Repository.
 - Menschlicher Einstieg: `README.md`
 - Workspace und lokale Laufzeit: `docs/workspace.md`
 - Architektur und WordPress-Verträge: `docs/architecture.md`
+- Governance-Hierarchie für Komponenten-Repositories:
+  `docs/parent-governance-contract.md`
 - Wiederholbare Abläufe: `.agents/skills/`
 - Kanonisches Komponenten-Inventar: `config/workspace-components.tsv`
 - Unverbindliche Beobachtungen: `docs/learning-candidates.md`

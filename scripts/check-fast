@@ -19,6 +19,10 @@ echo "=== Workspace structure ==="
 ./scripts/check-workspace-structure
 
 echo
+echo "=== Parent-governance contract ==="
+bash tests/check-parent-governance-contract.sh
+
+echo
 echo "=== Quality-gate contract ==="
 bash tests/check-quality-gates.sh
 

@@ -11,6 +11,7 @@ tagore-plugins/
 |-- .codex/                         # lokale Agentenrollen und Grenzen
 |-- config/workspace-components.tsv # kanonisches Inventar
 |-- docs/
+|   `-- parent-governance-contract.md # kanonische Governance-Projektion
 |-- scripts/                        # Prüf- und Laufzeitharness
 `-- repositories/                  # ignorierter Container eigenständiger Repos
     |-- flz_wpdb_objects/.git/
@@ -26,6 +27,17 @@ Das Repository bleibt aus historischen Gründen `tagore-plugins` benannt und
 fungiert nur noch als Koordinator. `repositories/` ist im Koordinator ignoriert;
 jeder Unterordner ist ein eigenständiges Git-Repository. Das Inventar verbindet
 Repos, Slugs und Laufzeitlinks, ohne eine zweite Komponentenliste einzuführen.
+
+Die Governance-Hierarchie steht kanonisch in
+`docs/parent-governance-contract.md`. Ihr versionierter Block wird zusätzlich
+vollständig in jeder Komponenten-`AGENTS.md` mitgeführt: Repository-lokale
+Regeln bleiben bei einem Einzel-Checkout vollständig, dürfen anwendbare
+Parent-Verträge aber nur konkretisieren oder verschärfen. Der
+Parent-Contract-Test prüft jede im Komponenten-Inventar registrierte
+Komponente auf eine bytegleiche Projektion. Die beiden Pflicht-Skills
+`work-in-wordpress-extension` und `test-driven-wordpress-change` werden
+ebenfalls lokal mitgeführt und bytegleich gegen ihre kanonischen
+Parent-Fassungen geprüft.
 
 ## VS Code
 
