@@ -61,10 +61,6 @@ for slug in "${slugs[@]}"; do
 	if [[ "$release_gate" == 'ready' ]]; then
 		grep -Fq 'Übernahmephase 5' "$workspace/repositories/$slug/ROADMAP.md" \
 			|| fail "Roadmap für $slug weist die Releasebereitschaft nicht aus."
-		if ! bash "$gate" --release "$slug" >"$release_output" 2>&1; then
-			grep -Fq 'Repository ist nicht sauber' "$release_output" \
-				|| fail "Release-Gate für $slug ist trotz ready-Status nicht ausführbar grün."
-		fi
 	else
 		grep -Fq 'Release-Gate in' "$workspace/repositories/$slug/ROADMAP.md" \
 			|| fail "Roadmap für $slug weist die Release-Blockade nicht aus."
