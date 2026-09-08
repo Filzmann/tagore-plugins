@@ -74,9 +74,10 @@ Abnahme bleibt davon getrennt `prepared`.
 
 ## Phase 3 – Testlücken und manuelle Abnahme
 
-Status: ausstehend. Für alle sechs Komponenten liegen vollständige, leere
+Status: ausstehend. Für die übrigen Komponenten liegen vollständige, leere
 Abnahmeprotokolle vor; `acceptance=prepared` bedeutet ausdrücklich noch keine
-fachliche oder visuelle Abnahme.
+fachliche oder visuelle Abnahme. `flz_ags` wurde am 8. September 2026 durch den
+Auftraggeber abgenommen und steht auf `acceptance=accepted`.
 
 - Altcode schrittweise auf mindestens 85 Prozent Line-Coverage anheben;
 - Sicherheits-, Datenschutz-, Migrations-, Parallelitäts- und
@@ -106,7 +107,10 @@ Zwischenstand: Der BR-starke Ein-Wurzel-, Manifest-, SHA-256-, Ausschluss- und
 Bytegleichheitsvertrag ist als installierbares WordPress-ZIP zentral
 implementiert und in allen Komponenten-CI-Workflows eingebunden.
 `release_archive=configured` bleibt bis zu grünen Remote-Läufen sowie der
-Installation und dem Upgrade aus dem exakten Artefakt bestehen.
+Installation und dem Upgrade aus dem exakten Artefakt bestehen. Für `flz_ags`
+wurde der zweifache bytegleiche Bau einschließlich Manifest und SHA-256 sowie
+Installation, Deaktivierung, Reaktivierung und Rückbau aus Version 0.6.1 am
+8. September 2026 lokal belegt; das Archiv-Gate ist `enforced`.
 
 ## Phase 5 – Releasefreigabe
 
@@ -115,3 +119,6 @@ Nur wenn alle vorherigen Phasen für die Komponente abgeschlossen sind, darf
 Staging oder Produktion benötigen weiterhin jeweils eine ausdrückliche
 Freigabe. Ein fehlgeschlagenes oder nicht ausgeführtes Gate setzt den Status
 wieder auf `blocked`.
+
+`flz_ags` erreichte am 8. September 2026 nach bestätigter Gesamtentscheidung
+und technischem Artefaktnachweis Phase 5 mit `release_gate=ready`.

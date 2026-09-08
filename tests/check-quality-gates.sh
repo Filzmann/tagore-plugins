@@ -51,19 +51,29 @@ for slug in "${slugs[@]}"; do
 	done
 	grep -Fq 'docs/manual-acceptance.md' "$workspace/repositories/$slug/README.md" \
 		|| fail "README für $slug verweist nicht auf das Abnahmeprotokoll."
-	grep -Fq 'Release-Gate in' "$workspace/repositories/$slug/ROADMAP.md" \
-		|| fail "Roadmap für $slug weist die Release-Blockade nicht aus."
 	commit_gate="$(awk -F '\t' -v slug="$slug" '$1 == slug { print $3; exit }' "$quality_config")"
+	release_gate="$(awk -F '\t' -v slug="$slug" '$1 == slug { print $13; exit }' "$quality_config")"
 	[[ "$commit_gate" == 'enforced' ]] || fail "Commit-Gate ist für $slug nicht enforced."
 	if ! bash "$gate" --commit "$slug" >/dev/null; then
 		fail "Commit-Gate ist für $slug nicht ausführbar grün."
 	fi
 
-	if bash "$gate" --release "$slug" >"$release_output" 2>&1; then
-		fail "Noch nicht vollständig übernommener Release-Gate wurde für $slug freigegeben."
+	if [[ "$release_gate" == 'ready' ]]; then
+		grep -Fq 'Übernahmephase 5' "$workspace/repositories/$slug/ROADMAP.md" \
+			|| fail "Roadmap für $slug weist die Releasebereitschaft nicht aus."
+		if ! bash "$gate" --release "$slug" >"$release_output" 2>&1; then
+			grep -Fq 'Repository ist nicht sauber' "$release_output" \
+				|| fail "Release-Gate für $slug ist trotz ready-Status nicht ausführbar grün."
+		fi
+	else
+		grep -Fq 'Release-Gate in' "$workspace/repositories/$slug/ROADMAP.md" \
+			|| fail "Roadmap für $slug weist die Release-Blockade nicht aus."
+		if bash "$gate" --release "$slug" >"$release_output" 2>&1; then
+			fail "Noch nicht vollständig übernommener Release-Gate wurde für $slug freigegeben."
+		fi
+		grep -Fq 'RELEASE BLOCKIERT' "$release_output" \
+			|| fail "Release-Blockade für $slug ist nicht eindeutig diagnostizierbar."
 	fi
-	grep -Fq 'RELEASE BLOCKIERT' "$release_output" \
-		|| fail "Release-Blockade für $slug ist nicht eindeutig diagnostizierbar."
 	rm -f "$release_output"
 done
 
