@@ -54,6 +54,17 @@ for test_file in "${tests[@]}"; do
 		php -d output_buffering=16384 "${command[@]}"
 done
 
+if [[ "${TAGORE_COVERAGE_PHPUNIT:-0}" == "1" ]]; then
+	[[ -f "$repo/phpunit.xml.dist" ]] || fail "PHPUnit-Konfiguration fehlt: $repo/phpunit.xml.dist"
+	[[ -x "$repo/vendor/bin/phpunit" ]] || fail "PHPUnit fehlt: $repo/vendor/bin/phpunit"
+	report="$output/phpunit.xml"
+	echo '> Coverage: PHPUnit integration tests'
+	(
+		cd "$repo"
+		XDEBUG_MODE=coverage vendor/bin/phpunit --coverage-clover "$report"
+	)
+fi
+
 summary="$(TAGORE_COVERAGE_DETAILS=1 php "$workspace/tests/coverage/merge-clover.php" "$slug" "$output")"
 echo "$summary"
 percent="$(awk -F '\t' 'NR == 1 { print $4 }' <<< "$summary")"
