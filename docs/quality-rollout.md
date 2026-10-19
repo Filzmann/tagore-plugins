@@ -74,7 +74,7 @@ Abnahme bleibt davon getrennt `prepared`.
 
 ## Phase 3 – Testlücken und manuelle Abnahme
 
-Status: ausstehend. Für die übrigen Komponenten liegen vollständige, leere
+Status: in Übernahme. Für die übrigen Komponenten liegen vollständige, leere
 Abnahmeprotokolle vor; `acceptance=prepared` bedeutet ausdrücklich noch keine
 fachliche oder visuelle Abnahme. `flz_ags` wurde am 8. September 2026 durch den
 Auftraggeber abgenommen und steht auf `acceptance=accepted`.
@@ -89,6 +89,14 @@ Auftraggeber abgenommen und steht auf `acceptance=accepted`.
 
 `acceptance` wechselt erst nach unterschriebener Gesamtentscheidung von
 `prepared` auf `accepted`.
+
+Der wiederverwendbare opt-in Standard für echte WordPress-Integrationstests ist
+mit `flz_ags` und `flz_elternsprechtag` belegt: Jede Komponente hält ihren
+Installer und PHPUnit-Bootstrap unter `tests/`, verwendet eine isolierte
+MariaDB-Datenbank und lädt Shared-Plugins ausschließlich über explizite
+Umgebungsvariablen an deren öffentlichen Entry-Points. Ein eigener
+`wordpress-integration`-CI-Job führt diese Tests unabhängig von Smokes aus;
+eine Einbindung in die PHP-Coverage bleibt pro Komponente optional.
 
 ## Phase 4 – Reproduzierbare Release-Artefakte
 
