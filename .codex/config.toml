@@ -5,6 +5,22 @@ approval_policy = "on-request"
 max_threads = 3
 max_depth = 1
 
+[agents.routine_worker]
+description = "Narrow, deterministic work within an established Tagore contract."
+config_file = "agents/routine_worker.toml"
+
+[agents.standard_worker]
+description = "Normal single-component work within established Tagore contracts."
+config_file = "agents/standard_worker.toml"
+
+[agents.complex_worker]
+description = "Security-, privacy-, migration-, shared-contract, or cross-component work."
+config_file = "agents/complex_worker.toml"
+
+[agents.critical_reviewer]
+description = "Independent read-only review of completed high-impact Tagore work."
+config_file = "agents/critical_reviewer.toml"
+
 [agents.explorer]
 description = "Read-only mapping of one Tagore WordPress component, contract, or runtime symptom."
 config_file = "agents/explorer.toml"

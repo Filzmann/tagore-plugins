@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cache_dir="${TAGORE_SECURITY_SCANNER_CACHE_DIR:-$root/.cache/security-scanners}"
+"$root/scripts/install-security-scanners" >/dev/null
+gitleaks="$cache_dir/bin/gitleaks-8.30.1"
+osv="$cache_dir/bin/osv-scanner-2.6.0"
+
+echo '=== Secret scan ==='
+temporary="$(mktemp -d)"
+trap 'rm -rf "$temporary"' EXIT
+
+scan_repository() {
+	local repository="$1" label="$2" source
+	source="$temporary/$label"
+	mkdir -p "$source"
+	git -C "$repository" ls-files --cached --others --exclude-standard -z \
+		| while IFS= read -r -d '' file; do
+			[[ -e "$repository/$file" || -L "$repository/$file" ]] && printf '%s\0' "$file"
+		done \
+		| tar -C "$repository" --null --files-from=- -cf - \
+		| tar -C "$source" -xf -
+	"$gitleaks" detect --source "$source" --no-git --redact --exit-code 1
+}
+
+scan_repository "$root" workspace
+while IFS=$'\t' read -r path kind slug _runtime; do
+	[[ "$path" == path || "$kind" != plugin ]] && continue
+	scan_repository "$root/$path" "$slug"
+done < "$root/config/workspace-components.tsv"
+
+echo '=== Composer dependency scan ==='
+while IFS=$'\t' read -r path kind _slug _runtime; do
+	[[ "$path" == path || "$kind" != plugin ]] && continue
+	lock="$root/$path/composer.lock"
+	[[ -f "$lock" ]] || continue
+	"$osv" scan --lockfile "$lock"
+done < "$root/config/workspace-components.tsv"
+echo 'Security-Basislinie: OK'

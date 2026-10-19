@@ -23,6 +23,18 @@ echo "=== Parent-governance contract ==="
 bash tests/check-parent-governance-contract.sh
 
 echo
+echo "=== Agent routing contract ==="
+bash tests/check-agent-routing-contract.sh
+
+echo
+echo "=== Security baseline contract ==="
+bash tests/check-security-baseline-contract.sh
+
+echo
+echo "=== Document references ==="
+scripts/check-document-references
+
+echo
 echo "=== Quality-gate contract ==="
 bash tests/check-quality-gates.sh
 

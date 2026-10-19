@@ -25,6 +25,33 @@ zusätzlich `test-driven-wordpress-change`. Neue Plugins oder Themes werden nur
 mit `create-wordpress-extension` angelegt. Workspace-Prüfungen folgen
 `verify-wordpress-workspace`.
 
+## KI-Ausführungsrouting
+
+Delegierbare Aufgaben erhalten vor ihrer Ausführung die kleinste ausreichende
+Klasse. Die technischen Rollen sind ausschließlich in `.codex/config.toml`
+und den referenzierten Dateien unter `.codex/agents/` definiert; eine
+Klassifikation erweitert niemals eine Schreibfreigabe oder schwächt Stop- und
+Quality-Gates ab.
+
+- `ROUTINE`: eng begrenzte, deterministische Arbeit nach einem bestehenden
+  Muster ohne Architektur-, Sicherheits-, Rechte-, Datenschutz-, Migrations-
+  oder Cross-Component-Entscheidung.
+- `STANDARD`: normale Arbeit in genau einer Komponente innerhalb etablierter
+  Verträge.
+- `COMPLEX`: Architektur, Security, Capabilities/Nonces/Authentifizierung,
+  personenbezogene Daten, Migrationen, persistente Strukturen, öffentliche
+  Shared-APIs, mehrere Komponenten, widersprüchliche Anforderungen oder
+  wesentlicher Blast Radius.
+- `CRITICAL_REVIEW`: unabhängige, ausschließlich lesende Prüfung bereits
+  umgesetzter risikoreicher Arbeit; sie ist nicht automatisch erforderlich und
+  ersetzt keine Tests oder Freigaben.
+
+Erkennt ein `ROUTINE`- oder `STANDARD`-Worker eine höhere Grenze, stoppt er
+vor weiteren abhängigen Änderungen mit `ESCALATION_REQUIRED`; ein
+`COMPLEX`-Worker meldet fehlende Entscheidungen, Freigaben oder Rückbaupfade
+ebenso. Die Rollen sind eine Arbeitsanweisung, keine technische Umgehung der
+bestehenden Autorisierungs-, Sandbox- oder Plattformgrenzen.
+
 ## Geltungsbereich und Grenzen
 
 - Eigener Quellcode liegt ausschließlich in den im Komponenten-Inventar

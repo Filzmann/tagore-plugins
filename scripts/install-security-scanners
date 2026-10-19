@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cache_dir="${TAGORE_SECURITY_SCANNER_CACHE_DIR:-$root/.cache/security-scanners}"
+platform='linux-amd64'
+mkdir -p "$cache_dir/bin"
+
+install_tool() {
+	local tool="$1" version url hash archive artifact target
+	IFS=$'\t' read -r _ version _ url hash archive < <(awk -F '\t' -v tool="$tool" -v platform="$platform" 'NR > 1 && $1 == tool && $3 == platform { print; exit }' "$root/security-compliance/scanner-tools.tsv")
+	[[ -n "${version:-}" ]] || { echo "Scanner-Pin fehlt: $tool/$platform" >&2; exit 1; }
+	target="$cache_dir/bin/$tool-$version"
+	[[ -x "$target" ]] && { printf '%s\n' "$target"; return; }
+	artifact="$cache_dir/$tool-$version.$archive"
+	curl --fail --location --silent --show-error --output "$artifact" "$url"
+	printf '%s  %s\n' "$hash" "$artifact" | sha256sum --check --status || { rm -f "$artifact"; exit 1; }
+	if [[ "$archive" == tar.gz ]]; then
+		local extraction
+		extraction="$(mktemp -d "$cache_dir/.${tool}.XXXXXX")"
+		tar -xzf "$artifact" -C "$extraction"
+		install -m 700 "$extraction/$tool" "$target"
+		rm -rf "$extraction"
+	else
+		install -m 700 "$artifact" "$target"
+	fi
+	printf '%s\n' "$target"
+}
+
+install_tool gitleaks >/dev/null
+install_tool osv-scanner >/dev/null
+echo "Security-Scanner installiert: $cache_dir/bin"

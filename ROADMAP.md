@@ -6,8 +6,8 @@ Inventar enthält sechs Plugins und noch kein eigenes Theme. Jedes Plugin
 besitzt ein eigenes Git-Repository unter `repositories/`; die Detailpläne
 liegen im jeweiligen Repository.
 
-Die komponentenübergreifende Prüfung von Demo- und Beispieldaten ist in
-`docs/demo-data-audit.md` dokumentiert.
+Die komponentenübergreifende Prüfung von Demo- und Beispieldaten ist als
+abgeschlossener Nachweis in `docs/records/demo-data-audit.md` dokumentiert.
 
 ## Gesamturteil
 
@@ -33,7 +33,7 @@ keine Komponente als Release Candidate freigegeben.
 4. **Erledigt:** Alte KI-/Agenten-Weiterleiter und konkurrierende Dokumentation
    bereinigen; sinnvolle Regeln in den jeweils zuständigen Scope übertragen.
 5. Erst danach das unabhängige Theme-Projekt `flz-tagore` gemäß
-   `docs/theme-rebuild-roadmap.md` beginnen.
+   `docs/plans/theme-rebuild.md` beginnen.
 
 ## P0 – vor weiterer fachlicher Erweiterung
 

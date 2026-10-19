@@ -17,7 +17,7 @@ liegt in sechs unabhängigen Git-Repositories im ignorierten Container
 | `flz-tagore` | Theme | keine harte Plugin-Abhängigkeit |
 
 Das Theme-Repository wird erst nach Abschluss der Plugin-Trennung erzeugt. Die
-inhaltliche Theme-Roadmap steht in `docs/theme-rebuild-roadmap.md`.
+inhaltliche Theme-Roadmap steht in [`../plans/theme-rebuild.md`](../plans/theme-rebuild.md).
 
 ## Umsetzungsstand der Git-Strategie
 

@@ -11,6 +11,9 @@ tagore-plugins/
 |-- .codex/                         # lokale Agentenrollen und Grenzen
 |-- config/workspace-components.tsv # kanonisches Inventar
 |-- docs/
+|   |-- README.md                     # Dokumentationslandkarte
+|   |-- plans/                        # aktive, workspaceweite Vorhaben
+|   |-- records/                      # abgeschlossene Nachweise und Entscheidungen
 |   `-- parent-governance-contract.md # kanonische Governance-Projektion
 |-- scripts/                        # Prüf- und Laufzeitharness
 `-- repositories/                  # ignorierter Container eigenständiger Repos
@@ -38,6 +41,11 @@ Komponente auf eine bytegleiche Projektion. Die beiden Pflicht-Skills
 `work-in-wordpress-extension` und `test-driven-wordpress-change` werden
 ebenfalls lokal mitgeführt und bytegleich gegen ihre kanonischen
 Parent-Fassungen geprüft.
+
+Die Aufgaben und Verbindlichkeit aller Workspace-Dokumente sind in
+[`README.md`](README.md) im Verzeichnis `docs/` festgelegt. Laufende Vertraege
+bleiben direkt unter `docs/`; aktive Vorhaben liegen unter `docs/plans/`,
+abgeschlossene Nachweise und Entscheidungen unter `docs/records/`.
 
 ## VS Code
 

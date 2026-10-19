@@ -20,6 +20,7 @@ Regeln, Roadmap und Prüfwerkzeuge. Das geplante Theme erhält ebenfalls ein
 eigenes Repository. WordPress-Core, Fremderweiterungen und Uploads bleiben in
 der getrennten lokalen Laufzeit.
 
-Weitere Details: [Workspace](docs/workspace.md),
-[Architektur](docs/architecture.md),
+Die [Dokumentationslandkarte](docs/README.md) ordnet alle Workspace-Dokumente
+nach Aufgabe und Verbindlichkeit. Direkte Einstiege sind
+[Workspace](docs/workspace.md), [Architektur](docs/architecture.md),
 [Quality-Rollout](docs/quality-rollout.md) und [Agentenregeln](AGENTS.md).

@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+status=0
+documents=("$root/README.md")
+while IFS= read -r file; do documents+=("$file"); done < <(find "$root/docs" -type f -name '*.md' | sort)
+while IFS=$'\t' read -r path kind _slug _runtime; do
+	[[ "$path" == path ]] && continue
+	while IFS= read -r file; do documents+=("$file"); done < <(find "$root/$path" \( -path '*/.git' -o -path '*/vendor' -o -path '*/node_modules' \) -prune -o -type f -name '*.md' -print | sort)
+done < "$root/config/workspace-components.tsv"
+
+for document in "${documents[@]}"; do
+	while IFS=$'\t' read -r line target; do
+		[[ "$target" == http://* || "$target" == https://* || "$target" == \#* || "$target" == mailto:* ]] && continue
+		target="${target%%#*}"
+		[[ -n "$target" ]] || continue
+		resolved="$(realpath -m "$(dirname "$document")/$target")"
+		if [[ "$resolved" != "$root"/* || ! -e "$resolved" ]]; then
+			echo "$document:$line: ungültiger relativer Markdown-Link: $target" >&2
+			status=1
+		fi
+	done < <(awk '{ rest=$0; while (match(rest, /!?\[[^]]*\]\(([^ )#]+)(#[^)]*)?\)/)) { token=substr(rest,RSTART,RLENGTH); sub(/^.*\(/,"",token); sub(/#.*/,"",token); sub(/\).*/,"",token); print FNR "\t" token; rest=substr(rest,RSTART+RLENGTH) } }' "$document")
+done
+exit "$status"
