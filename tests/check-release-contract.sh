@@ -22,7 +22,7 @@ done
 
 slug='flz_shortcode_redirect'
 fixture="$temporary/$slug"
-mkdir -p "$fixture/docs" "$fixture/includes" "$fixture/tests" "$fixture/vendor" "$fixture/.github"
+mkdir -p "$fixture/docs" "$fixture/includes" "$fixture/tests" "$fixture/vendor" "$fixture/.aws" "$fixture/.github"
 printf '%s\n' '<?php' '/*' 'Plugin Name: Fixture' 'Version: 1.2.3' '*/' > "$fixture/$slug.php"
 printf '%s\n' '# Fixture' > "$fixture/README.md"
 printf '%s\n' 'SPDX-License-Identifier: GPL-2.0-or-later' > "$fixture/LICENSE"
@@ -31,11 +31,12 @@ printf '%s\n' '# Manuelles Abnahmeprotokoll' > "$fixture/docs/manual-acceptance.
 printf '%s\n' '<?php echo "fixture";' > "$fixture/includes/runtime.php"
 printf '%s\n' 'nicht paketieren' > "$fixture/tests/test.php"
 printf '%s\n' 'nicht paketieren' > "$fixture/vendor/dev.php"
+printf '%s\n' 'nicht paketieren' > "$fixture/.aws/config"
 printf '%s\n' 'nicht paketieren' > "$fixture/.github/workflow.yml"
 printf '%s\n' 'nicht paketieren' > "$fixture/AGENTS.md"
 
 git -C "$fixture" init -q
-git -C "$fixture" add AGENTS.md CHANGELOG.md LICENSE README.md .github docs includes tests vendor "$slug.php"
+git -C "$fixture" add AGENTS.md CHANGELOG.md LICENSE README.md .aws .github docs includes tests vendor "$slug.php"
 git -C "$fixture" -c user.name='Tagore Test' -c user.email='test@example.invalid' \
 	commit -q -m 'fixture'
 
@@ -57,7 +58,7 @@ for required in \
 	"$slug/docs/manual-acceptance.md"; do
 	unzip -Z1 "$archive" | grep -Fxq "$required" || fail "Pflichtinhalt fehlt im ZIP: $required"
 done
-if unzip -Z1 "$archive" | grep -Eq '(^|/)(\.git|\.github|\.agents|\.codex|tests|vendor|node_modules|scripts)(/|$)|AGENTS[.]md$'; then
+if unzip -Z1 "$archive" | grep -Eq '(^|/)(\.aws|\.git|\.github|\.agents|\.codex|tests|vendor|node_modules|scripts)(/|$)|AGENTS[.]md$'; then
 	fail 'Release-ZIP enthält Entwicklungs- oder Agentendateien.'
 fi
 (

@@ -67,6 +67,7 @@ tar -C "$repo" \
 	--exclude='./.git' \
 	--exclude='./.github' \
 	--exclude='./.agents' \
+	--exclude='./.aws' \
 	--exclude='./.codex' \
 	--exclude='./.editorconfig' \
 	--exclude='./.gitattributes' \
