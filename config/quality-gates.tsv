@@ -2,7 +2,7 @@ slug	adoption_phase	commit_gate	ci_gate	php_target_percent	php_baseline_percent	
 flz_wpdb_objects	2	enforced	enforced	85	58.18	enforced	n/a	n/a	not-applicable	accepted	configured	blocked
 flz_ui_components	2	enforced	enforced	85	54.34	enforced	85	54.05	enforced	accepted	configured	blocked
 flz_shortcode_redirect	2	enforced	enforced	85	99.06	enforced	n/a	n/a	not-applicable	accepted	configured	blocked
-flz_elternsprechtag	1	transition	configured	85	pending	baseline-pending	n/a	n/a	not-applicable	prepared	pending	blocked
+flz_elternsprechtag	2	enforced	enforced	85	11.35	enforced	n/a	n/a	not-applicable	accepted	configured	blocked
 flz_probeunterricht	5	enforced	enforced	85	8.16	enforced	n/a	n/a	not-applicable	accepted	enforced	ready
 flz_ags	5	enforced	enforced	85	16.47	enforced	85	41.46	enforced	accepted	enforced	ready
 flz-tagore	0	transition	pending	85	pending	baseline-pending	n/a	n/a	not-applicable	prepared	pending	blocked
