@@ -3,6 +3,7 @@ set -euo pipefail
 
 workspace="$(cd "$(dirname "$0")/.." && pwd)"
 inventory="$workspace/config/workspace-components.tsv"
+quality_config="$workspace/config/quality-gates.tsv"
 
 fail() {
 	echo "FEHLER: $*" >&2
@@ -58,6 +59,13 @@ fi
 while IFS=$'\t' read -r path kind slug _runtime_link; do
 	[[ "$path" == 'path' ]] && continue
 	[[ "$kind" == 'plugin' || "$kind" == 'theme' ]] || continue
+	row="$(awk -F '\t' -v slug="$slug" '$1 == slug { print; exit }' "$quality_config")"
+	IFS=$'\t' read -r _slug phase _commit _ci _php_target php_baseline php_gate \
+		_js_target _js_baseline _js_gate _acceptance _archive _release <<< "$row"
+	# Coverage wird erst ab Übernahmephase 1 erhoben. Komponenten in Phase 0
+	# sind registriert, aber noch nicht in die CI- und Coverage-Infrastruktur
+	# aufgenommen.
+	(( phase >= 1 )) || continue
 	repo="$workspace/$path"
 	workflow="$repo/.github/workflows/tests.yml"
 	[[ -f "$workflow" ]] || fail "Workflow fehlt für $slug."
@@ -69,9 +77,6 @@ while IFS=$'\t' read -r path kind slug _runtime_link; do
 		'measure-component-php-coverage'; do
 		require_text "$workflow" "$text"
 	done
-	row="$(awk -F '\t' -v slug="$slug" '$1 == slug { print; exit }' "$workspace/config/quality-gates.tsv")"
-	IFS=$'\t' read -r _slug _phase _commit _ci _php_target php_baseline php_gate \
-		_js_target _js_baseline _js_gate _acceptance _archive _release <<< "$row"
 	[[ "$php_baseline" =~ ^[0-9]+([.][0-9]+)?$ ]] \
 		|| fail "PHP-Coverage-Baseline ist für $slug nicht numerisch konfiguriert."
 	[[ "$php_gate" == 'enforced' ]] \

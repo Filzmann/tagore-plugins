@@ -53,9 +53,16 @@ for slug in "${slugs[@]}"; do
 		|| fail "README für $slug verweist nicht auf das Abnahmeprotokoll."
 	commit_gate="$(awk -F '\t' -v slug="$slug" '$1 == slug { print $3; exit }' "$quality_config")"
 	release_gate="$(awk -F '\t' -v slug="$slug" '$1 == slug { print $13; exit }' "$quality_config")"
-	[[ "$commit_gate" == 'enforced' ]] || fail "Commit-Gate ist für $slug nicht enforced."
-	if ! bash "$gate" --commit "$slug" >/dev/null; then
-		fail "Commit-Gate ist für $slug nicht ausführbar grün."
+	if [[ "$commit_gate" == 'enforced' ]]; then
+		if ! bash "$gate" --commit "$slug" >/dev/null; then
+			fail "Commit-Gate ist für $slug nicht ausführbar grün."
+		fi
+	else
+		if bash "$gate" --commit "$slug" >"$release_output" 2>&1; then
+			fail "Übergangs-Commit-Gate wurde für $slug freigegeben."
+		fi
+		grep -Fq 'COMMIT BLOCKIERT' "$release_output" \
+			|| fail "Commit-Blockade für $slug ist nicht eindeutig diagnostizierbar."
 	fi
 
 	if [[ "$release_gate" == 'ready' ]]; then

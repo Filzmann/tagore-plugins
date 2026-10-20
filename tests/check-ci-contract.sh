@@ -16,7 +16,13 @@ require_text() {
 	grep -Fq -- "$text" "$file" || fail "${file#"$workspace/"} enthält nicht: $text"
 }
 
-mapfile -t slugs < <(awk -F '\t' 'NR > 1 && ($2 == "plugin" || $2 == "theme") { print $3 }' "$inventory")
+# Erst ab Übernahmephase 1 ist ein Komponenten-Workflow verpflichtend. In
+# Phase 0 ist eine Komponente lediglich registriert und darf noch keinen
+# Remote-Workflow oder eine veröffentlichte Repository-Referenz besitzen.
+mapfile -t slugs < <(
+	awk -F '\t' 'NR == FNR { if (NR > 1) phase[$1] = $2; next } NR > 1 && ($2 == "plugin" || $2 == "theme") && phase[$3] >= 1 { print $3 }' \
+		"$quality_config" "$inventory"
+)
 
 for slug in "${slugs[@]}"; do
 	repo="$workspace/repositories/$slug"
