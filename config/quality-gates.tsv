@@ -5,3 +5,4 @@ flz_shortcode_redirect	2	enforced	enforced	85	99.06	enforced	n/a	n/a	not-applica
 flz_elternsprechtag	2	enforced	enforced	85	10.69	enforced	n/a	n/a	not-applicable	accepted	configured	blocked
 flz_probeunterricht	5	enforced	enforced	85	8.16	enforced	n/a	n/a	not-applicable	accepted	enforced	ready
 flz_ags	5	enforced	enforced	85	16.47	enforced	85	41.46	enforced	accepted	enforced	ready
+flz-tagore	0	transition	pending	85	pending	baseline-pending	n/a	n/a	not-applicable	prepared	pending	blocked

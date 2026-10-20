@@ -5,3 +5,4 @@ repositories/flz_shortcode_redirect	plugin	flz_shortcode_redirect	plugins/flz_sh
 repositories/flz_elternsprechtag	plugin	flz_elternsprechtag	plugins/flz_elternsprechtag
 repositories/flz_probeunterricht	plugin	flz_probeunterricht	plugins/flz_probeunterricht
 repositories/flz_ags	plugin	flz_ags	plugins/flz_ags
+repositories/flz-tagore	theme	flz-tagore	themes/flz-tagore
