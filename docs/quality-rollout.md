@@ -130,3 +130,8 @@ wieder auf `blocked`.
 
 `flz_ags` erreichte am 8. September 2026 nach bestätigter Gesamtentscheidung
 und technischem Artefaktnachweis Phase 5 mit `release_gate=ready`.
+
+`flz_elternsprechtag` erreichte am 20. Oktober 2026 nach erfolgreichem
+Remote-CI-Lauf, bytegleichem RC.14-Artefaktbau sowie isolierter
+Frischinstallation, Upgrade aus RC.2, Deaktivierung, Reaktivierung und
+Shortcode-Rendernachweis Phase 5 mit `release_gate=ready`.
