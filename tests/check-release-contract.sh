@@ -91,6 +91,28 @@ if "$builder" "$slug" "$fixture" "$temporary/symlink" >/dev/null 2>&1; then
 	fail 'Symlink im Releaseinhalt wurde nicht blockiert.'
 fi
 
+theme_slug='flz-tagore'
+theme_fixture="$temporary/$theme_slug"
+mkdir -p "$theme_fixture/docs" "$theme_fixture/assets"
+printf '%s\n' '/*' 'Theme Name: Fixture Theme' 'Version: 1.2.3' '*/' > "$theme_fixture/style.css"
+printf '%s\n' '<?php' > "$theme_fixture/functions.php"
+printf '%s\n' '# Fixture' > "$theme_fixture/README.md"
+printf '%s\n' 'SPDX-License-Identifier: GPL-2.0-or-later' > "$theme_fixture/LICENSE"
+printf '%s\n' '# Changelog' '## Unreleased' '## 1.2.3' > "$theme_fixture/CHANGELOG.md"
+printf '%s\n' '# Manuelles Abnahmeprotokoll' > "$theme_fixture/docs/manual-acceptance.md"
+printf '%s\n' 'theme runtime asset' > "$theme_fixture/assets/example.txt"
+git -C "$theme_fixture" init -q
+git -C "$theme_fixture" add CHANGELOG.md LICENSE README.md assets docs functions.php style.css
+git -C "$theme_fixture" -c user.name='Tagore Test' -c user.email='test@example.invalid' \
+	commit -q -m 'theme fixture'
+
+"$builder" "$theme_slug" "$theme_fixture" "$temporary/theme"
+theme_archive="$temporary/theme/$theme_slug-1.2.3.zip"
+[[ -f "$theme_archive" ]] || fail 'Erwartetes Theme-ZIP fehlt.'
+for required in "$theme_slug/style.css" "$theme_slug/functions.php"; do
+	unzip -Z1 "$theme_archive" | grep -Fxq "$required" || fail "Theme-Pflichtinhalt fehlt im ZIP: $required"
+done
+
 while IFS=$'\t' read -r path kind component _runtime_link; do
 	[[ "$path" == 'path' ]] && continue
 	[[ "$kind" == 'plugin' ]] || continue
