@@ -13,6 +13,25 @@ wenn ihre Nachweise im eigenen Repository grün sind.
 
 Status: umgesetzt.
 
+### Unabhängiger Bootstrap `flz-tagore`
+
+Der ausdrücklich beauftragte öffentliche Anfangsstand übernimmt den
+registrierten lokalen Theme-Stand `2974a21` in ein unabhängiges Repository;
+die vorhandene lokale Git-Historie wird weder geändert noch übertragen. Als
+einzige Produktdatei wird die bisherige Vorschau durch einen neu erzeugten,
+neutralen Platzhalter ohne Foto ersetzt. Alle übrigen registrierten Dateien
+wurden byteweise mit dem lokalen Stand verglichen; das Theme dokumentiert
+Clean-Room-Herkunft und GPL-2.0-or-later. Ein einfacher Musterabgleich auf
+Schlüsselmaterial war ohne Treffer; er ersetzt keinen vollständigen Audit.
+
+Der vorbereitete Anfangscommit lautet
+`85e57361f01bba366b579ba51137c34d3731173c` und hat keinen Elterncommit;
+das frühere Screenshot-Blob ist darin nicht enthalten. Theme-Schnelltest und
+Workspace-Schnelltest waren lokal erfolgreich. PHP- und JavaScript-Coverage
+erreichen lokal die konfigurierten Baselines von 7,87 beziehungsweise
+92,24 Prozent. Remote-CI, Commit- und Releasefreigabe sind hiervon getrennt
+und bleiben bis zu ihren jeweiligen Nachweisen unverändert blockiert.
+
 ## Phase 1 – Reproduzierbare Komponenten-CI
 
 Reihenfolge: `flz_wpdb_objects`, `flz_ui_components`,

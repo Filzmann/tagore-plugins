@@ -48,5 +48,8 @@ dist/
 # Local reports
 reports/
 
+# Local WordPress runtime comparisons and imported staging snapshots
+/.runtime-comparison/
+
 # Independent component repositories managed by the workspace inventory
 /repositories/

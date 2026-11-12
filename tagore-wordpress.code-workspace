@@ -62,7 +62,8 @@
       "**/node_modules/**": true,
       "**/public/**": true,
       "**/public.before-*/**": true
-    }
+    },
+    "git.ignoreLimitWarning": true
   },
   "tasks": {
     "version": "2.0.0",

@@ -170,6 +170,14 @@ bestehenden Autorisierungs-, Sandbox- oder Plattformgrenzen.
 
 - Vor persistenten Änderungen Zustände, Vorbedingungen, Zielzustand,
   Nebenwirkungen, Wiederholbarkeit, Fehlerfälle und Nebenläufigkeit bestimmen.
+- Für binäre fachliche Bestätigungen wird ein positiv benanntes boolesches
+  Merkmal wie `isConfirmed` verwendet: `false` bedeutet, dass die Bedingung
+  noch nicht erfüllt ist, `true` bedeutet erfüllt. Fachstatus bleiben davon
+  getrennt; bei unklarer Modellierung ist vor der Einführung nachzufragen.
+- Bestehende Datenmodelle werden nach dieser Regel nur „on touch“ angepasst,
+  also wenn dieselbe fachliche Änderung das Modell ohnehin berührt. Solche
+  Anpassungen erhalten einen versionierten, idempotenten Upgradepfad und
+  passende Bestandsdaten-Tests; sie lösen keinen pauschalen Altdaten-Audit aus.
 - Schemaänderungen verwenden versionierte, idempotente Upgradepfade. Bereits
   ausgelieferte Migrationen werden nicht rückwirkend geändert. Frische
   Installation und Upgrade mit synthetischen Bestandsdaten werden geprüft.

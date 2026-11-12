@@ -16,12 +16,14 @@ repo="$(realpath "$2")"
 output="$3"
 source_date_epoch="${SOURCE_DATE_EPOCH:-315532800}"
 
-[[ "$slug" =~ ^flz_[a-z0-9_]+$ ]] || fail "Ungültiger Plugin-Slug: $slug"
+[[ "$slug" =~ ^flz_[a-z0-9_]+$ || "$slug" =~ ^flz-[a-z0-9-]+$ ]] \
+	|| fail "Ungültiger Komponenten-Slug: $slug"
 [[ -d "$repo" && "$(basename "$repo")" == "$slug" ]] \
 	|| fail "Repository und Slug passen nicht zusammen: $repo / $slug"
-awk -F '\t' -v slug="$slug" -v path="repositories/$slug" \
-	'NR > 1 && $1 == path && $2 == "plugin" && $3 == slug { found=1 } END { exit !found }' \
-	"$inventory" || fail "Plugin ist nicht kanonisch registriert: $slug"
+component_kind="$(awk -F '\t' -v slug="$slug" -v path="repositories/$slug" \
+	'NR > 1 && $1 == path && ($2 == "plugin" || $2 == "theme") && $3 == slug { print $2; exit }' \
+	"$inventory")"
+[[ -n "$component_kind" ]] || fail "Komponente ist nicht kanonisch registriert: $slug"
 [[ "$source_date_epoch" =~ ^[0-9]+$ && "$source_date_epoch" -ge 315532800 ]] \
 	|| fail 'SOURCE_DATE_EPOCH muss eine Ganzzahl ab 1980-01-01 sein.'
 
@@ -29,14 +31,20 @@ for command in awk cmp find git grep realpath sed sha256sum sort tar touch unzip
 	command -v "$command" >/dev/null 2>&1 || fail "Erforderlicher Befehl fehlt: $command"
 done
 
-main_file="$repo/$slug.php"
-for required in "$main_file" "$repo/README.md" "$repo/LICENSE" "$repo/CHANGELOG.md" "$repo/docs/manual-acceptance.md"; do
+if [[ "$component_kind" == 'plugin' ]]; then
+	version_source="$repo/$slug.php"
+	component_required=("$version_source")
+else
+	version_source="$repo/style.css"
+	component_required=("$version_source" "$repo/functions.php")
+fi
+for required in "${component_required[@]}" "$repo/README.md" "$repo/LICENSE" "$repo/CHANGELOG.md" "$repo/docs/manual-acceptance.md"; do
 	[[ -f "$required" ]] || fail "Releasepflichtdatei fehlt: ${required#"$repo/"}"
 done
 
-version="$(sed -n -E 's/^[[:space:]]*(\*[[:space:]]*)?Version:[[:space:]]*([^[:space:]]+).*$/\2/p' "$main_file" | head -n 1)"
+version="$(sed -n -E 's/^[[:space:]]*(\*[[:space:]]*)?Version:[[:space:]]*([^[:space:]]+).*$/\2/p' "$version_source" | head -n 1)"
 [[ "$version" =~ ^[0-9]+[.][0-9]+[.][0-9]+([+-][0-9A-Za-z.-]+)?$ ]] \
-	|| fail "Ungültige oder fehlende Plugin-Version in $slug.php: $version"
+	|| fail "Ungültige oder fehlende Version in ${version_source#"$repo/"}: $version"
 grep -Fq "## $version" "$repo/CHANGELOG.md" \
 	|| fail "CHANGELOG.md enthält keinen Abschnitt für Version $version."
 
@@ -98,7 +106,12 @@ tar -C "$repo" \
 if find "$stage/$slug" -type l -print -quit | grep -q .; then
 	fail "Symlink im Releaseinhalt gefunden: $slug"
 fi
-for required in "$slug/$slug.php" "$slug/README.md" "$slug/LICENSE" "$slug/CHANGELOG.md" "$slug/docs/manual-acceptance.md"; do
+if [[ "$component_kind" == 'plugin' ]]; then
+	stage_required=("$slug/$slug.php")
+else
+	stage_required=("$slug/style.css" "$slug/functions.php")
+fi
+for required in "${stage_required[@]}" "$slug/README.md" "$slug/LICENSE" "$slug/CHANGELOG.md" "$slug/docs/manual-acceptance.md"; do
 	[[ -f "$stage/$required" ]] || fail "Releasepflichtdatei wurde nicht paketiert: $required"
 done
 if find "$stage/$slug" -type f \( \
