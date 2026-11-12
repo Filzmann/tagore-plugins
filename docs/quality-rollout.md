@@ -38,6 +38,12 @@ CI-Vertrag zunächst als `configured`; Commit- und Release-Gate bleiben
 blockiert. Phase-1-Prüfungen akzeptieren konfigurierte Coverage-Ratschen, die
 weiterhin Baseline-Rückgänge blockieren; ab Phase 2 bleibt `enforced` Pflicht.
 
+Nach einem weiteren grünen Theme-Pull-Request sowie einem grünen `main`-Lauf
+für Commit `28407b84f253050142c8549299d453da5bd2a7b3` sind CI, PHP- und
+JavaScript-Coverage für Phase 2 `enforced`. Die Baselines bleiben unverändert;
+die manuelle Abnahme und das Release-Gate bleiben `prepared` beziehungsweise
+`blocked`.
+
 ## Phase 1 – Reproduzierbare Komponenten-CI
 
 Reihenfolge: `flz_wpdb_objects`, `flz_ui_components`,
