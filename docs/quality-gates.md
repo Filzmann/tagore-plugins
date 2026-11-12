@@ -49,6 +49,25 @@ und Releasecommits blockiert. Ausdrücklich beauftragte, eng begrenzte
 Quality-Rollout-Commits dürfen die fehlenden Gates schrittweise herstellen und
 werden als Übergangsausnahme ausgewiesen.
 
+### Einmaliger Bootstrap eines unabhängigen Repositorys
+
+Für eine bereits registrierte Komponente ohne veröffentlichbaren Git-Verlauf
+darf ein ausdrücklich beauftragter Quality-Rollout einmalig einen unabhängigen
+Anfangscommit in einem nachweislich leeren Remote-Repository herstellen. Er
+enthält nur den vorhandenen Quellstand und ausdrücklich beauftragte
+Bereinigungen, keine neuen Produktfunktionen. Die ursprüngliche lokale
+Historie bleibt unverändert und wird nicht übertragen.
+
+Vor dem Push sind Dateiliste, Herkunft, Lizenzierung und die gesamte neue
+Historie auf Secrets, personenbezogene Daten und nicht freigegebene Assets zu
+prüfen; lokale Komponenten- und Workspace-Tests müssen bestehen. Ursprung,
+Bereinigungen, ausgeschlossene Historie, Prüfungen und vollständige neue
+Commit-ID werden nachvollziehbar dokumentiert. Der Bootstrap ist weder eine
+Freigabe für normale Produktcommits noch für ein Release: Beide Gates bleiben
+unverändert blockiert. CI und Coverage müssen auf dem exakten Anfangscommit
+und einem Pull Request remote grün laufen, bevor ihre Gate-Status nach den
+normalen Rollout-Regeln erhöht werden dürfen.
+
 ## Coverage-Gate
 
 - PHP und JavaScript werden getrennt gemessen. Komponenten ohne ausführbares

@@ -27,6 +27,17 @@ done
 
 bash "$gate" --policy
 
+for contract in \
+	'### Einmaliger Bootstrap eines unabhängigen Repositorys' \
+	'nachweislich leeren Remote-Repository' \
+	'Die ursprüngliche lokale' \
+	'keine neuen Produktfunktionen' \
+	'Beide Gates bleiben' \
+	'und einem Pull Request remote grün laufen'; do
+	grep -Fq "$contract" "$workspace/docs/quality-gates.md" \
+		|| fail "Bootstrap-Vertrag fehlt: $contract"
+done
+
 mapfile -t slugs < <(awk -F '\t' 'NR > 1 { print $3 }' "$inventory")
 for slug in "${slugs[@]}"; do
 	count="$(awk -F '\t' -v slug="$slug" 'NR > 1 && $1 == slug { count++ } END { print count + 0 }' "$quality_config")"
