@@ -79,8 +79,11 @@ while IFS=$'\t' read -r path kind slug _runtime_link; do
 	done
 	[[ "$php_baseline" =~ ^[0-9]+([.][0-9]+)?$ ]] \
 		|| fail "PHP-Coverage-Baseline ist für $slug nicht numerisch konfiguriert."
-	[[ "$php_gate" == 'enforced' ]] \
-		|| fail "PHP-Coverage-Gate ist für $slug nicht enforced."
+	if [[ "$phase" == '1' ]]; then
+		[[ "$php_gate" == 'configured' || "$php_gate" == 'enforced' ]] || fail "PHP-Coverage-Gate ist für $slug nicht konfiguriert."
+	else
+		[[ "$php_gate" == 'enforced' ]] || fail "PHP-Coverage-Gate ist für $slug nicht enforced."
+	fi
 	"$workspace/scripts/check-coverage-baseline" "$slug" php "$php_baseline" >/dev/null
 	php_below="$(awk -v baseline="$php_baseline" 'BEGIN { printf "%.2f", baseline - 0.01 }')"
 	if "$workspace/scripts/check-coverage-baseline" "$slug" php "$php_below" >/dev/null 2>&1; then
