@@ -27,19 +27,14 @@ jobs:
         env:
           CANDIDATE_REF: ${{ github.head_ref || github.ref_name }}
         run: |
-          for repository in \
-            flz_wpdb_objects \
-            flz_ui_components \
-            flz_shortcode_redirect \
-            flz_elternsprechtag \
-            flz_probeunterricht \
-            flz_ags; do
+          while IFS=$'\t' read -r component_path component_kind repository runtime_link; do
+            [[ "$component_path" == path ]] && continue
             if git ls-remote --exit-code --heads "https://github.com/Filzmann/$repository.git" "refs/heads/$CANDIDATE_REF" >/dev/null 2>&1; then
               echo "$repository=$CANDIDATE_REF" >> "$GITHUB_OUTPUT"
             else
               echo "$repository=main" >> "$GITHUB_OUTPUT"
             fi
-          done
+          done < workspace/config/workspace-components.tsv
       - name: flz_wpdb_objects auschecken
         uses: actions/checkout@v7
         with:
@@ -76,6 +71,12 @@ jobs:
           repository: Filzmann/flz_ags
           ref: ${{ steps.component-refs.outputs.flz_ags }}
           path: workspace/repositories/flz_ags
+      - name: flz-tagore auschecken
+        uses: actions/checkout@v7
+        with:
+          repository: Filzmann/flz-tagore
+          ref: ${{ steps.component-refs.outputs['flz-tagore'] }}
+          path: workspace/repositories/flz-tagore
       - name: PHP einrichten
         uses: shivammathur/setup-php@v2
         with:

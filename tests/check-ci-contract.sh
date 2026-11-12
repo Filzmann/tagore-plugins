@@ -105,8 +105,9 @@ for text in \
 	'./scripts/check-fast'; do
 	require_text "$root_workflow" "$text"
 done
-for slug in "${slugs[@]}"; do
+while IFS=$'\t' read -r component_path component_kind slug runtime_link; do
+	[[ "$component_path" == path ]] && continue
 	require_text "$root_workflow" "repository: Filzmann/$slug"
-done
+done < "$inventory"
 
 echo 'CI-Vertrag: OK'
