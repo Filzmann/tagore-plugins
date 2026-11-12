@@ -32,6 +32,12 @@ erreichen lokal die konfigurierten Baselines von 7,87 beziehungsweise
 92,24 Prozent. Remote-CI, Commit- und Releasefreigabe sind hiervon getrennt
 und bleiben bis zu ihren jeweiligen Nachweisen unverändert blockiert.
 
+Die Remote-Läufe des Anfangsstands und des Quality-Pull-Requests wurden nach
+Aktualisierung des Workspace erfolgreich abgeschlossen. Phase 1 führt den
+CI-Vertrag zunächst als `configured`; Commit- und Release-Gate bleiben
+blockiert. Phase-1-Prüfungen akzeptieren konfigurierte Coverage-Ratschen, die
+weiterhin Baseline-Rückgänge blockieren; ab Phase 2 bleibt `enforced` Pflicht.
+
 ## Phase 1 – Reproduzierbare Komponenten-CI
 
 Reihenfolge: `flz_wpdb_objects`, `flz_ui_components`,

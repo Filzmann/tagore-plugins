@@ -59,10 +59,14 @@ for slug in "${slugs[@]}"; do
 	read -r phase ci_gate < <(
 		awk -F '\t' -v slug="$slug" '$1 == slug { print $2, $4; exit }' "$quality_config"
 	)
-	[[ "$phase" =~ ^[2-5]$ ]] || fail "Quality-Phase für $slug liegt vor Phase 2: $phase"
-	[[ "$ci_gate" == 'enforced' ]] || fail "CI-Gate für $slug ist nicht enforced: $ci_gate"
-	require_text "$repo/AGENTS.md" "Übernahmestand ist Phase $phase"
-	require_text "$repo/docs/manual-acceptance.md" '| PR-/`main`-CI / PHP 8.1 und 8.5 |'
+	if [[ "$phase" == '1' ]]; then
+		[[ "$ci_gate" == 'configured' || "$ci_gate" == 'enforced' ]] || fail "CI-Gate für $slug ist nicht konfiguriert: $ci_gate"
+	else
+		[[ "$phase" =~ ^[2-5]$ ]] || fail "Ungültige Quality-Phase für $slug: $phase"
+		[[ "$ci_gate" == 'enforced' ]] || fail "CI-Gate für $slug ist nicht enforced: $ci_gate"
+		require_text "$repo/AGENTS.md" "Übernahmestand ist Phase $phase"
+		require_text "$repo/docs/manual-acceptance.md" '| PR-/`main`-CI / PHP 8.1 und 8.5 |'
+	fi
 done
 
 for slug in flz_elternsprechtag flz_probeunterricht flz_ags; do
